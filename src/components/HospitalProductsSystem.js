@@ -122,60 +122,60 @@ const HospitalProductsSystem = () => {
 
           {/* Cards de Estatísticas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-5 transform hover:-translate-y-1">
+            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total de Produtos</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{products.length}</p>
-                  <p className="text-green-600 text-sm mt-1">
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Total de Produtos</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{products.length}</p>
+                  <p className="text-green-600 text-xs mt-1">
                     <span className="inline-flex items-center">
-                      <Package className="w-4 h-4 mr-1" />
+                      <Package className="w-3 h-3 mr-1" />
                       Produtos cadastrados
                     </span>
                   </p>
                 </div>
-                <div className="bg-blue-100 p-3 rounded-xl">
-                  <Package className="w-8 h-8 text-blue-600" />
+                <div className="bg-blue-100 p-2.5 rounded-xl">
+                  <Package className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-5 transform hover:-translate-y-1">
+            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Setores Ativos</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Setores Ativos</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
                     {new Set(products.map(p => p.setor).filter(Boolean)).size}
                   </p>
-                  <p className="text-purple-600 text-sm mt-1">
+                  <p className="text-purple-600 text-xs mt-1">
                     <span className="inline-flex items-center">
-                      <div className="w-4 h-4 mr-1 bg-purple-600 rounded-full"></div>
+                      <div className="w-3 h-3 mr-1 bg-purple-600 rounded-full"></div>
                       Setores em uso
                     </span>
                   </p>
                 </div>
-                <div className="bg-purple-100 p-3 rounded-xl">
-                  <div className="w-8 h-8 text-purple-600 flex items-center justify-center font-bold text-lg">🏥</div>
+                <div className="bg-purple-100 p-2.5 rounded-xl">
+                  <div className="w-6 h-6 text-purple-600 flex items-center justify-center font-bold text-base">🏥</div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-5 transform hover:-translate-y-1">
+            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Marcas Diferentes</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Marcas Diferentes</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
                     {new Set(products.map(p => p.marca).filter(Boolean)).size}
                   </p>
-                  <p className="text-indigo-600 text-sm mt-1">
+                  <p className="text-indigo-600 text-xs mt-1">
                     <span className="inline-flex items-center">
-                      <div className="w-4 h-4 mr-1 bg-indigo-600 rounded-full"></div>
+                      <div className="w-3 h-3 mr-1 bg-indigo-600 rounded-full"></div>
                       Fornecedores
                     </span>
                   </p>
                 </div>
-                <div className="bg-indigo-100 p-3 rounded-xl">
-                  <div className="w-8 h-8 text-indigo-600 flex items-center justify-center font-bold text-lg">🏭</div>
+                <div className="bg-indigo-100 p-2.5 rounded-xl">
+                  <div className="w-6 h-6 text-indigo-600 flex items-center justify-center font-bold text-base">🏭</div>
                 </div>
               </div>
             </div>
@@ -232,9 +232,11 @@ const HospitalProductsSystem = () => {
                   </div>
                 </div>
               </div>
-              <div className="overflow-x-auto">
+
+              {/* Container da tabela com scroll condicional */}
+              <div className={`overflow-x-auto ${products.length >= 3 ? 'max-h-80 overflow-y-auto' : ''}`}>
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Imagem

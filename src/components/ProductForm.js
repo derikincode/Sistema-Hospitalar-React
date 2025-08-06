@@ -190,7 +190,7 @@ const ProductForm = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-x-hidden">
       {/* Header Principal com largura total */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl shadow-xl p-4 md:p-5 mb-4 mx-4 mt-2">
         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white bg-opacity-10 rounded-full"></div>
@@ -248,7 +248,7 @@ const ProductForm = ({
       </div>
 
       {/* Conteúdo Principal Centralizado */}
-      <div className="px-4">
+      <div className="px-4 pb-6">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
@@ -414,6 +414,7 @@ const ProductForm = ({
                     className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none resize-none"
                     placeholder="Características e especificações técnicas..."
                     rows="4"
+                    maxLength="300"
                   />
                 </div>
               </div>
@@ -422,7 +423,7 @@ const ProductForm = ({
 
           {/* Galeria de Imagens - 1 coluna */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden h-fit">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-5 py-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -435,10 +436,10 @@ const ProductForm = ({
                 </div>
               </div>
               
-              <div className="p-4 space-y-3">
-                {/* Lista Compacta de Imagens */}
+              <div className="p-4">
+                {/* Lista de Imagens com altura fixa para evitar scroll */}
                 {formData.fotos.length > 0 && (
-                  <div className="space-y-2.5 max-h-80 overflow-y-auto">
+                  <div className="space-y-2.5 mb-4">
                     {formData.fotos.map((foto, index) => (
                       <div key={foto.id} className="bg-gray-50 rounded-lg p-2.5 hover:bg-gray-100 transition-colors">
                         <div className="flex items-start space-x-2.5">
@@ -483,7 +484,8 @@ const ProductForm = ({
                               </span>
                               <button
                                 onClick={() => removeFoto(foto.id)}
-                                className="text-red-500 hover:text-red-700 p-0.5"
+                                className="text-red-500 hover:text-red-700 p-0.5 transition-colors"
+                                title="Remover imagem"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -492,8 +494,9 @@ const ProductForm = ({
                             <input
                               value={foto.descricao}
                               onChange={(e) => updateImageField(foto.id, 'descricao', e.target.value)}
-                              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500 focus:border-purple-500 focus:outline-none"
                               placeholder="Descrição da imagem..."
+                              maxLength="100"
                             />
 
                             <div className="grid grid-cols-3 gap-1">
@@ -501,23 +504,26 @@ const ProductForm = ({
                                 type="text"
                                 value={foto.peso}
                                 onChange={(e) => updateImageField(foto.id, 'peso', e.target.value)}
-                                className="px-1.5 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500"
+                                className="px-1.5 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                 placeholder="Peso"
+                                maxLength="20"
                               />
                               <input
                                 type="number"
                                 value={foto.quantidade}
                                 onChange={(e) => updateImageField(foto.id, 'quantidade', e.target.value)}
-                                className="px-1.5 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500"
+                                className="px-1.5 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                 placeholder="Qtd"
                                 min="1"
+                                max="999"
                               />
                               <input
                                 type="text"
                                 value={foto.dimensoes}
                                 onChange={(e) => updateImageField(foto.id, 'dimensoes', e.target.value)}
-                                className="px-1.5 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500"
+                                className="px-1.5 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                 placeholder="Dimensões"
+                                maxLength="20"
                               />
                             </div>
                           </div>
@@ -532,7 +538,7 @@ const ProductForm = ({
                   <button
                     type="button"
                     onClick={addEmptyImage}
-                    className="w-full border-2 border-dashed border-purple-300 hover:border-purple-400 rounded-lg p-3.5 text-center hover:bg-purple-50 transition-all group"
+                    className="w-full border-2 border-dashed border-purple-300 hover:border-purple-400 rounded-lg p-4 text-center hover:bg-purple-50 transition-all group"
                   >
                     <div className="flex items-center justify-center space-x-2">
                       <Plus className="w-5 h-5 text-purple-600" />
@@ -540,19 +546,29 @@ const ProductForm = ({
                         Adicionar Imagem
                       </span>
                     </div>
+                    <p className="text-xs text-purple-500 mt-1">
+                      Máximo 5 imagens • Até 5MB cada
+                    </p>
                   </button>
                 ) : (
-                  <div className="text-center p-2.5 bg-orange-50 border border-orange-200 rounded-lg">
-                    <p className="text-xs text-orange-700 font-medium">Limite de 5 imagens atingido</p>
+                  <div className="text-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs text-orange-700 font-medium">
+                      Limite de 5 imagens atingido
+                    </p>
+                    <p className="text-xs text-orange-600 mt-1">
+                      Remova uma imagem para adicionar outra
+                    </p>
                   </div>
                 )}
 
                 {/* Estado vazio */}
                 {formData.fotos.length === 0 && (
-                  <div className="text-center py-6">
-                    <ImageIcon className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 mb-1">Nenhuma imagem adicionada</p>
-                    <p className="text-xs text-gray-400">Adicione fotos do produto</p>
+                  <div className="text-center py-8">
+                    <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 mb-1 font-medium">Nenhuma imagem adicionada</p>
+                    <p className="text-xs text-gray-400">
+                      Adicione fotos para melhor visualização do produto
+                    </p>
                   </div>
                 )}
               </div>
