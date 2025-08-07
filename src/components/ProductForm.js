@@ -1,5 +1,116 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Edit3, Camera, ArrowLeft, Save, X, Upload, ImageIcon, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Plus, Package, Edit3, Camera, ArrowLeft, Save, X, Upload, ImageIcon, CheckCircle, AlertCircle, Trash2, ChevronDown } from 'lucide-react';
+
+// Dados das marcas com logos
+const marcasData = {
+  'B-Braun': {
+    nome: 'B-BRAUN',
+    logo: 'https://camb.com.br/wp-content/uploads/2021/03/b-braun1.png',
+    cor: '#0066CC'
+  },
+  'Cremer': {
+    nome: 'CREMER',
+    logo: 'https://camb.com.br/wp-content/uploads/2021/03/cremer.png',
+    cor: '#E31837'
+  },
+  'Mucambo': {
+    nome: 'MUCAMBO',
+    logo: 'https://camb.com.br/wp-content/uploads/2021/04/logo-mucambo.png',
+    cor: '#1B5E20'
+  },
+  'Nipro': {
+    nome: 'NIPRO',
+    logo: 'https://camb.com.br/wp-content/uploads/2020/12/nipro.png',
+    cor: '#2196F3'
+  },
+  'Bio Higienic': {
+    nome: 'BIO HIGIENIC',
+    logo: 'https://camb.com.br/wp-content/uploads/2020/12/bio-higienic.png',
+    cor: '#4CAF50'
+  }
+};
+
+const CustomMarcaSelect = ({ value, onChange, error, className }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const marcas = Object.keys(marcasData);
+
+  const handleSelect = (marca) => {
+    onChange({ target: { name: 'marca', value: marca } });
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      {/* Botão do seletor */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full px-3 py-2.5 text-sm border rounded-lg transition-all flex items-center justify-between ${className} focus:outline-none`}
+      >
+        <div className="flex items-center space-x-2 flex-1">
+          {value && marcasData[value] ? (
+            <div className="flex items-center space-x-2">
+              <img
+                src={marcasData[value].logo}
+                alt={marcasData[value].nome}
+                className="h-5 w-auto object-contain"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <span className="text-gray-900 font-medium">{marcasData[value].nome}</span>
+            </div>
+          ) : (
+            <span className="text-gray-500">Selecione uma marca...</span>
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {/* Opção vazia */}
+          <button
+            type="button"
+            onClick={() => handleSelect('')}
+            className="w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center space-x-2 border-b border-gray-100"
+          >
+            <span className="text-gray-500">Selecione uma marca...</span>
+          </button>
+          
+          {/* Opções com logos */}
+          {marcas.map((marca) => (
+            <button
+              key={marca}
+              type="button"
+              onClick={() => handleSelect(marca)}
+              className="w-full px-3 py-3 text-center hover:bg-gray-50 flex flex-col items-center space-y-2 transition-colors"
+            >
+              <img
+                src={marcasData[marca].logo}
+                alt={marcasData[marca].nome}
+                className="h-7 w-auto object-contain"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <span className="text-xs text-gray-600 font-medium">{marcasData[marca].nome}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Overlay para fechar dropdown */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-5"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
 
 const ProductForm = ({ 
   editingProduct, 
@@ -303,25 +414,18 @@ const ProductForm = ({
                         <CheckCircle className="w-3.5 h-3.5 text-green-500" />
                       )}
                     </label>
-                    <select
-                      name="marca"
+                    <CustomMarcaSelect
                       value={formData.marca}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2.5 text-sm border rounded-lg transition-all ${
+                      error={formErrors.marca}
+                      className={
                         formErrors.marca 
                           ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 error-input' 
                           : formData.marca
                           ? 'border-green-300 bg-green-50 focus:border-green-500 focus:ring-2 focus:ring-green-100'
                           : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                      } focus:outline-none`}
-                    >
-                      <option value="">Selecione...</option>
-                      <option value="B-Braun">B-Braun</option>
-                      <option value="Cremer">Cremer</option>
-                      <option value="Mucambo">Mucambo</option>
-                      <option value="Nipro">Nipro</option>
-                      <option value="Bio Higienic">Bio Higienic</option>
-                    </select>
+                      }
+                    />
                     {formErrors.marca && (
                       <p className="text-xs text-red-600 mt-1 flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -352,7 +456,7 @@ const ProductForm = ({
                         ? 'border-green-300 bg-green-50 focus:border-green-500 focus:ring-2 focus:ring-green-100'
                         : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
                     } focus:outline-none`}
-                    placeholder="Ex: Monitor Cardíaco Digital"
+                    placeholder="Ex: Introcan Safety®"
                   />
                   {formErrors.nome && (
                     <p className="text-xs text-red-600 mt-1 flex items-center">
@@ -384,14 +488,11 @@ const ProductForm = ({
                     } focus:outline-none`}
                   >
                     <option value="">Selecione o setor...</option>
-                    <option value="CAMB">CAMB - Centro de Análises</option>
-                    <option value="BMAC">BMAC - Banco de Medula</option>
-                    <option value="DOCA">DOCA - Documentação</option>
-                    <option value="10° Andar">10° Andar - Internação</option>
-                    <option value="13° Andar">13° Andar - Internação</option>
-                    <option value="UTI">UTI - Terapia Intensiva</option>
-                    <option value="Centro Cirúrgico">Centro Cirúrgico</option>
-                    <option value="Emergência">Emergência</option>
+                    <option value="CAMB">CAMB</option>
+                    <option value="BMAC">BMAC</option>
+                    <option value="DOCA">DOCA</option>
+                    <option value="10° Andar">10° Andar</option>
+                    <option value="13° Andar">13° Andar</option>
                   </select>
                   {formErrors.setor && (
                     <p className="text-xs text-red-600 mt-1 flex items-center">
@@ -437,9 +538,9 @@ const ProductForm = ({
               </div>
               
               <div className="p-4">
-                {/* Lista de Imagens com altura fixa para evitar scroll */}
+                {/* Lista de Imagens com altura fixa para scroll */}
                 {formData.fotos.length > 0 && (
-                  <div className="space-y-2.5 mb-4">
+                  <div className="space-y-2.5 mb-4 max-h-80 overflow-y-auto">
                     {formData.fotos.map((foto, index) => (
                       <div key={foto.id} className="bg-gray-50 rounded-lg p-2.5 hover:bg-gray-100 transition-colors">
                         <div className="flex items-start space-x-2.5">
@@ -450,7 +551,7 @@ const ProductForm = ({
                                 <img
                                   src={foto.url}
                                   alt={`Img ${index + 1}`}
-                                  className="w-14 h-14 object-cover rounded-lg border-2 border-white shadow"
+                                  className="w-14 h-14 object-contain rounded-lg border-2 border-white shadow bg-gray-50"
                                 />
                                 <button
                                   onClick={() => document.getElementById(`file-${foto.id}`).click()}

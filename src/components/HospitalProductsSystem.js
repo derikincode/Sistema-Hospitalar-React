@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Package, Edit3, Trash2, Search, Eye, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Plus, Package, Edit3, Trash2, Search, Eye, ChevronLeft, ChevronRight, ArrowLeft, Download, ZoomIn, X } from 'lucide-react';
 import ProductForm from './ProductForm';
 
 const HospitalProductsSystem = () => {
@@ -9,6 +9,7 @@ const HospitalProductsSystem = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingProduct, setViewingProduct] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   const handleSaveProduct = (productData) => {
     if (editingProduct) {
@@ -72,6 +73,23 @@ const HospitalProductsSystem = () => {
 
   const goBackToList = () => {
     setCurrentPage('list');
+  };
+
+  const downloadImage = (imageUrl, fileName) => {
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = fileName || 'produto-imagem.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const openZoom = () => {
+    setIsZoomOpen(true);
+  };
+
+  const closeZoom = () => {
+    setIsZoomOpen(false);
   };
 
   // Renderizar ProductForm se estivermos na página de formulário
@@ -475,11 +493,34 @@ const HospitalProductsSystem = () => {
                         >
                           <ChevronRight className="w-4 h-4" />
                         </button>
-                        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-sm">
-                          {currentImageIndex + 1} / {viewingProduct.fotos.length}
-                        </div>
                       </>
                     )}
+                    
+                    {/* Contador de imagens */}
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-sm">
+                      {currentImageIndex + 1} / {viewingProduct.fotos.length}
+                    </div>
+                    
+                    {/* Botões de ação */}
+                    <div className="absolute bottom-2 right-2 flex space-x-2">
+                      <button
+                        onClick={openZoom}
+                        className="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-full transition-all shadow-lg"
+                        title="Ampliar imagem"
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => downloadImage(
+                          viewingProduct.fotos[currentImageIndex].url,
+                          `${viewingProduct.nome}-imagem-${currentImageIndex + 1}.jpg`
+                        )}
+                        className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition-all shadow-lg"
+                        title="Baixar imagem"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   
                   {/* Thumbnail Navigation */}
@@ -589,6 +630,70 @@ const HospitalProductsSystem = () => {
             </div>
           </div>
         </div>
+
+        {/* Modal de Zoom */}
+        {isZoomOpen && viewingProduct && viewingProduct.fotos && viewingProduct.fotos[currentImageIndex] && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+            <div className="relative w-full h-full overflow-auto">
+              {/* Botão fechar */}
+              <button
+                onClick={closeZoom}
+                className="fixed top-4 right-4 bg-white hover:bg-gray-100 text-gray-800 p-2 rounded-full shadow-lg z-20 transition-all"
+                title="Fechar zoom"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Container da imagem com scroll */}
+              <div className="flex items-center justify-center min-h-full p-4">
+                <img
+                  src={viewingProduct.fotos[currentImageIndex].url}
+                  alt={viewingProduct.nome}
+                  className="block shadow-2xl rounded-lg cursor-pointer"
+                  style={{ maxWidth: 'none', height: 'auto' }}
+                  onClick={closeZoom}
+                />
+              </div>
+
+              {/* Informações da imagem */}
+              <div className="fixed bottom-4 left-4 right-4 bg-black bg-opacity-75 text-white p-3 rounded-lg z-10">
+                <h4 className="font-semibold text-lg mb-1">{viewingProduct.nome}</h4>
+                <p className="text-sm opacity-90">
+                  Imagem {currentImageIndex + 1} de {viewingProduct.fotos.length} • Tamanho real
+                </p>
+                {viewingProduct.fotos[currentImageIndex].descricao && (
+                  <p className="text-sm mt-1 opacity-80">
+                    {viewingProduct.fotos[currentImageIndex].descricao}
+                  </p>
+                )}
+              </div>
+
+              {/* Navegação no zoom (se houver múltiplas fotos) */}
+              {viewingProduct.fotos.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevImage();
+                    }}
+                    className="fixed left-4 top-1/2 transform -translate-y-1/2 bg-white hover:bg-gray-100 text-gray-800 p-3 rounded-full shadow-lg transition-all z-10"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextImage();
+                    }}
+                    className="fixed right-4 top-1/2 transform -translate-y-1/2 bg-white hover:bg-gray-100 text-gray-800 p-3 rounded-full shadow-lg transition-all z-10"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
