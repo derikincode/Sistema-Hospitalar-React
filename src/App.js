@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Login from './components/LoginLogic';
-import HospitalProductsSystem from './components/HospitalProductsSystem';
+import Login from './components/LoginSystem';
+import HospitalProductsSystem from './components/ProductManager';
 import './App.css';
 
 function App() {
