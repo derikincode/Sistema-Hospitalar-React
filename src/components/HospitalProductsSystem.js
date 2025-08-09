@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Edit3, Trash2, Search, Eye, ChevronLeft, ChevronRight, ArrowLeft, Download, ZoomIn, X, Database, RefreshCw, FileDown, FileUp } from 'lucide-react';
+import { Plus, Package, Edit3, Trash2, Search, Eye, ChevronLeft, ChevronRight, ArrowLeft, Download, ZoomIn, X, Database, RefreshCw, FileDown, FileUp, LogOut, User, Shield, Users, ChevronDown, Filter } from 'lucide-react';
 import ProductForm from './ProductForm';
 import databaseService from '../services/database';
 
-const HospitalProductsSystem = () => {
+const HospitalProductsSystem = ({ currentUser, onLogout }) => {
   const [products, setProducts] = useState([]);
-  const [currentPage, setCurrentPage] = useState('list'); // 'list', 'form', 'view'
+  const [currentPage, setCurrentPage] = useState('list');
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingProduct, setViewingProduct] = useState(null);
@@ -14,8 +14,15 @@ const HospitalProductsSystem = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dbStats, setDbStats] = useState(null);
   const [showDbStatus, setShowDbStatus] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  const [filters, setFilters] = useState({
+    marca: '',
+    setor: '',
+    hasImages: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Carrega produtos do banco de dados ao inicializar
   useEffect(() => {
     loadProducts();
     loadStats();
@@ -44,10 +51,15 @@ const HospitalProductsSystem = () => {
     }
   };
 
+  const handleLogout = () => {
+    if (window.confirm('Tem certeza que deseja sair do sistema?')) {
+      onLogout();
+    }
+  };
+
   const handleSaveProduct = async (productData) => {
     try {
       if (editingProduct) {
-        // Mantém o createdAt original ao editar
         const originalProduct = await databaseService.getProduct(editingProduct.id);
         const updatedProduct = await databaseService.updateProduct({
           ...productData,
@@ -64,9 +76,8 @@ const HospitalProductsSystem = () => {
       
       setEditingProduct(null);
       setCurrentPage('list');
-      loadStats(); // Atualiza estatísticas
+      loadStats();
       
-      // Feedback visual
       const message = editingProduct ? 'Produto atualizado com sucesso!' : 'Produto cadastrado com sucesso!';
       showNotification(message, 'success');
     } catch (error) {
@@ -90,7 +101,7 @@ const HospitalProductsSystem = () => {
           setCurrentPage('list');
         }
         
-        loadStats(); // Atualiza estatísticas
+        loadStats();
         showNotification('Produto excluído com sucesso!', 'success');
       } catch (error) {
         console.error('Erro ao excluir produto:', error);
@@ -99,7 +110,6 @@ const HospitalProductsSystem = () => {
     }
   };
 
-  // Função para mostrar notificações
   const showNotification = (message, type = 'info') => {
     const notification = document.createElement('div');
     notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2 animate-slide-in ${
@@ -119,7 +129,6 @@ const HospitalProductsSystem = () => {
     }, 3000);
   };
 
-  // Função para exportar dados
   const handleExportData = async () => {
     try {
       const jsonData = await databaseService.exportProducts();
@@ -140,7 +149,6 @@ const HospitalProductsSystem = () => {
     }
   };
 
-  // Função para importar dados
   const handleImportData = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -159,16 +167,36 @@ const HospitalProductsSystem = () => {
     };
     reader.readAsText(file);
     
-    // Limpa o input para permitir reimportar o mesmo arquivo
     event.target.value = '';
   };
 
-  const filteredProducts = products.filter(product =>
-    product.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.setor && product.setor.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.setor && product.setor.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesMarca = !filters.marca || product.marca === filters.marca;
+    const matchesSetor = !filters.setor || product.setor === filters.setor;
+    const matchesImages = !filters.hasImages || 
+      (filters.hasImages === 'com' && product.fotos && product.fotos.length > 0) ||
+      (filters.hasImages === 'sem' && (!product.fotos || product.fotos.length === 0));
+
+    return matchesSearch && matchesMarca && matchesSetor && matchesImages;
+  });
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setFilters({
+      marca: '',
+      setor: '',
+      hasImages: ''
+    });
+  };
+
+  const hasActiveFilters = searchTerm || filters.marca || filters.setor || filters.hasImages;
+  const uniqueBrands = [...new Set(products.map(p => p.marca).filter(Boolean))].sort();
+  const uniqueSectors = [...new Set(products.map(p => p.setor).filter(Boolean))].sort();
 
   const viewProduct = (product) => {
     setViewingProduct(product);
@@ -218,7 +246,6 @@ const HospitalProductsSystem = () => {
     setIsZoomOpen(false);
   };
 
-  // Renderizar ProductForm se estivermos na página de formulário
   if (currentPage === 'form') {
     return (
       <ProductForm
@@ -231,18 +258,15 @@ const HospitalProductsSystem = () => {
     );
   }
 
-  // Página de Lista de Produtos
   if (currentPage === 'list') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 px-4 py-2">
         <div className="w-full">
-          {/* Header Principal */}
           <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl shadow-xl p-4 md:p-5 mb-4">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white bg-opacity-10 rounded-full"></div>
             <div className="absolute bottom-0 left-0 -mb-6 -ml-6 w-32 h-32 bg-white bg-opacity-5 rounded-full"></div>
             
             <div className="relative">
-              {/* Título e Botões */}
               <div className="flex flex-col lg:flex-row items-center justify-between">
                 <div className="flex items-center space-x-3 mb-3 lg:mb-0">
                   <div className="bg-white bg-opacity-20 backdrop-blur-sm p-3 rounded-xl shadow-lg">
@@ -254,22 +278,39 @@ const HospitalProductsSystem = () => {
                   </div>
                 </div>
                 
-                <div className="flex space-x-2">
-                  {/* Botão Status do BD */}
-                  <button
-                    onClick={() => setShowDbStatus(!showDbStatus)}
-                    className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                    title="Status do Banco de Dados"
-                  >
-                    <Database className="w-5 h-5" />
-                    {dbStats && (
-                      <span className="hidden md:inline text-sm font-medium">
-                        {dbStats.totalProducts} produtos
-                      </span>
-                    )}
-                  </button>
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <button
+                      id="user-menu-button"
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    >
+                      <div className="flex items-center space-x-2">
+                        {currentUser.role === 'admin' ? (
+                          <Shield className="w-5 h-5" />
+                        ) : (
+                          <Users className="w-5 h-5" />
+                        )}
+                        <span className="hidden md:inline text-sm font-medium">{currentUser.name}</span>
+                      </div>
+                    </button>
+                  </div>
                   
-                  {/* Botão Novo Produto */}
+                  {currentUser.role === 'admin' && (
+                    <button
+                      onClick={() => setShowDbStatus(!showDbStatus)}
+                      className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                      title="Status do Banco de Dados (Admin Only)"
+                    >
+                      <Database className="w-5 h-5" />
+                      {dbStats && (
+                        <span className="hidden md:inline text-sm font-medium">
+                          {dbStats.totalProducts} produtos
+                        </span>
+                      )}
+                    </button>
+                  )}
+                  
                   <button
                     onClick={goToNewProduct}
                     className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold"
@@ -280,10 +321,19 @@ const HospitalProductsSystem = () => {
                 </div>
               </div>
 
-              {/* Status do Banco de Dados (expansível) */}
-              {showDbStatus && dbStats && (
+              {showDbStatus && dbStats && currentUser.role === 'admin' && (
                 <div className="mt-4 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-white font-semibold text-sm flex items-center">
+                      <Database className="w-4 h-4 mr-2" />
+                      Painel Administrativo
+                    </h4>
+                    <span className="bg-red-500 bg-opacity-80 text-white px-2 py-1 rounded-full text-xs font-bold">
+                      ADMIN
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white mb-4">
                     <div>
                       <p className="text-xs opacity-80">Total de Produtos</p>
                       <p className="text-xl font-bold">{dbStats.totalProducts}</p>
@@ -302,8 +352,7 @@ const HospitalProductsSystem = () => {
                     </div>
                   </div>
                   
-                  {/* Botões de Importar/Exportar */}
-                  <div className="flex space-x-2 mt-4">
+                  <div className="flex space-x-2">
                     <button
                       onClick={handleExportData}
                       className="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all text-sm"
@@ -336,7 +385,6 @@ const HospitalProductsSystem = () => {
             </div>
           </div>
 
-          {/* Cards de Estatísticas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
               <div className="flex items-center justify-between">
@@ -397,7 +445,6 @@ const HospitalProductsSystem = () => {
             </div>
           </div>
 
-          {/* Loading State */}
           {isLoading && (
             <div className="bg-white rounded-xl shadow-xl p-12 text-center">
               <div className="flex flex-col items-center">
@@ -422,29 +469,50 @@ const HospitalProductsSystem = () => {
                     )}
                   </div>
                   
-                  {/* Barra de Busca na Tabela */}
+                  {/* Barra de Busca na Tabela com Filtro */}
                   <div className="flex-1 max-w-md">
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-gray-400" />
+                    <div className="flex items-center space-x-2">
+                      {/* Barra de Busca */}
+                      <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Buscar produtos..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="block w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-400"
+                        />
+                        {searchTerm && (
+                          <button
+                            onClick={() => setSearchTerm('')}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <div className="w-4 h-4 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold transition-colors">
+                              ✕
+                            </div>
+                          </button>
+                        )}
                       </div>
-                      <input
-                        type="text"
-                        placeholder="Buscar produtos..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="block w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-400"
-                      />
-                      {searchTerm && (
-                        <button
-                          onClick={() => setSearchTerm('')}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <div className="w-4 h-4 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold transition-colors">
-                            ✕
+
+                      {/* Botão de Filtro */}
+                      <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`relative p-2.5 rounded-lg transition-all duration-200 flex items-center justify-center ${
+                          hasActiveFilters
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                        title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+                      >
+                        <Filter className="w-5 h-5" />
+                        {hasActiveFilters && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-white font-bold">!</span>
                           </div>
-                        </button>
-                      )}
+                        )}
+                      </button>
                     </div>
                     
                     {searchTerm && (
@@ -459,7 +527,140 @@ const HospitalProductsSystem = () => {
                 </div>
               </div>
 
-              {/* Container da tabela com scroll condicional */}
+              {/* Painel de Filtros Expansível */}
+              {showFilters && (
+                <div className="border-b border-gray-200 bg-gray-50 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700 flex items-center">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filtros Avançados
+                    </h4>
+                    {hasActiveFilters && (
+                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                        {Object.values(filters).filter(Boolean).length + (searchTerm ? 1 : 0)} filtros ativos
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    {/* Filtro por Marca */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Marca
+                      </label>
+                      <select
+                        value={filters.marca}
+                        onChange={(e) => setFilters(prev => ({ ...prev, marca: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      >
+                        <option value="">Todas as marcas</option>
+                        {uniqueBrands.map(marca => (
+                          <option key={marca} value={marca}>{marca}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Filtro por Setor */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Setor
+                      </label>
+                      <select
+                        value={filters.setor}
+                        onChange={(e) => setFilters(prev => ({ ...prev, setor: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      >
+                        <option value="">Todos os setores</option>
+                        {uniqueSectors.map(setor => (
+                          <option key={setor} value={setor}>{setor}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Filtro por Imagens */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Imagens
+                      </label>
+                      <select
+                        value={filters.hasImages}
+                        onChange={(e) => setFilters(prev => ({ ...prev, hasImages: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      >
+                        <option value="">Todos os produtos</option>
+                        <option value="com">Com imagens</option>
+                        <option value="sem">Sem imagens</option>
+                      </select>
+                    </div>
+
+                    {/* Botão Limpar Filtros */}
+                    <div className="flex items-end">
+                      <button
+                        onClick={clearAllFilters}
+                        disabled={!hasActiveFilters}
+                        className={`w-full px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                          hasActiveFilters
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-300'
+                        }`}
+                      >
+                        Limpar Filtros
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Resumo dos Filtros Ativos */}
+                  {hasActiveFilters && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800 font-medium mb-2">Filtros aplicados:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {searchTerm && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                            Busca: "{searchTerm}"
+                            <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-blue-600">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                        {filters.marca && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                            Marca: {filters.marca}
+                            <button onClick={() => setFilters(prev => ({ ...prev, marca: '' }))} className="ml-1 hover:text-purple-600">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                        {filters.setor && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                            Setor: {filters.setor}
+                            <button onClick={() => setFilters(prev => ({ ...prev, setor: '' }))} className="ml-1 hover:text-green-600">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                        {filters.hasImages && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                            {filters.hasImages === 'com' ? 'Com imagens' : 'Sem imagens'}
+                            <button onClick={() => setFilters(prev => ({ ...prev, hasImages: '' }))} className="ml-1 hover:text-orange-600">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Estatísticas dos Resultados */}
+                  <div className="mt-3 text-sm text-gray-600">
+                    Mostrando <span className="font-semibold text-gray-900">{filteredProducts.length}</span> de{' '}
+                    <span className="font-semibold text-gray-900">{products.length}</span> produtos
+                    {hasActiveFilters && filteredProducts.length === 0 && (
+                      <span className="ml-2 text-orange-600 font-medium">• Nenhum produto encontrado</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className={`overflow-x-auto ${products.length >= 3 ? 'max-h-80 overflow-y-auto' : ''}`}>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
@@ -576,7 +777,6 @@ const HospitalProductsSystem = () => {
             </div>
           )}
 
-          {/* Mensagem quando não há produtos ou busca sem resultados */}
           {!isLoading && (products.length === 0 || (products.length > 0 && filteredProducts.length === 0)) && (
             <div className="bg-white rounded-xl shadow-xl p-12 text-center">
               <div className="max-w-md mx-auto">
@@ -585,12 +785,19 @@ const HospitalProductsSystem = () => {
                 </div>
                 
                 <h3 className="text-xl font-bold text-gray-800 mb-3">
-                  {products.length === 0 ? 'Bem-vindo ao sistema!' : 'Nenhum produto encontrado'}
+                  {products.length === 0 
+                    ? 'Bem-vindo ao sistema!' 
+                    : hasActiveFilters 
+                    ? 'Nenhum produto encontrado'
+                    : 'Nenhum produto encontrado'
+                  }
                 </h3>
                 
                 <p className="text-gray-600 mb-4 leading-relaxed">
                   {products.length === 0 
                     ? 'Você ainda não cadastrou nenhum produto. Comece agora mesmo adicionando seus primeiros equipamentos hospitalares.'
+                    : hasActiveFilters
+                    ? 'Não encontramos produtos que correspondam aos filtros aplicados. Tente ajustar os critérios de busca.'
                     : `Não encontramos produtos com "${searchTerm}". Tente buscar com outros termos ou cadastre um novo produto.`
                   }
                 </p>
@@ -606,10 +813,10 @@ const HospitalProductsSystem = () => {
                 ) : (
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
-                      onClick={() => setSearchTerm('')}
+                      onClick={clearAllFilters}
                       className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl transition-all duration-200 font-semibold"
                     >
-                      Limpar busca
+                      {hasActiveFilters ? 'Limpar Filtros' : 'Limpar busca'}
                     </button>
                     <button
                       onClick={goToNewProduct}
@@ -625,7 +832,69 @@ const HospitalProductsSystem = () => {
           )}
         </div>
 
-        {/* Adiciona estilos para animações */}
+        {showUserMenu && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowUserMenu(false)}
+            />
+            
+            <div 
+              className="fixed top-20 right-4 w-72 bg-white rounded-xl shadow-2xl z-50 border border-gray-200 overflow-hidden"
+              style={{
+                animation: 'fadeIn 0.2s ease-out'
+              }}
+            >
+              <div className="px-4 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md ${
+                    currentUser.role === 'admin' ? 'bg-blue-100 border-2 border-blue-200' : 'bg-green-100 border-2 border-green-200'
+                  }`}>
+                    {currentUser.role === 'admin' ? (
+                      <Shield className="w-6 h-6 text-blue-600" />
+                    ) : (
+                      <Users className="w-6 h-6 text-green-600" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-base font-bold text-gray-900">{currentUser.name}</p>
+                    <p className="text-sm text-gray-600">@{currentUser.username}</p>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${
+                      currentUser.role === 'admin' 
+                        ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                        : 'bg-green-100 text-green-800 border border-green-200'
+                    }`}>
+                      {currentUser.role === 'admin' ? 'Administrador' : 'Usuário'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Sessão Ativa</p>
+                    <p className="text-sm text-gray-700 font-medium">
+                      {new Date(currentUser.loginTime).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+
+              <div className="p-3">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all duration-200 border border-red-200 hover:border-red-300"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sair do Sistema</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
         <style jsx>{`
           @keyframes slide-in {
             from {
@@ -649,6 +918,17 @@ const HospitalProductsSystem = () => {
             }
           }
           
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
           .animate-slide-in {
             animation: slide-in 0.3s ease-out;
           }
@@ -661,12 +941,10 @@ const HospitalProductsSystem = () => {
     );
   }
 
-  // Página de Visualização do Produto
   if (currentPage === 'view' && viewingProduct) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-2">
         <div className="w-full">
-          {/* Header */}
           <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -701,7 +979,6 @@ const HospitalProductsSystem = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Image Gallery */}
             <div className="bg-white rounded-xl shadow-lg p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-3">Galeria de Fotos</h3>
               {viewingProduct.fotos && viewingProduct.fotos.length > 0 ? (
@@ -713,7 +990,6 @@ const HospitalProductsSystem = () => {
                       className="w-full h-64 object-contain rounded-lg shadow-lg bg-gray-50"
                     />
                     
-                    {/* Descrição da foto atual */}
                     {viewingProduct.fotos[currentImageIndex].descricao && (
                       <div className="absolute bottom-3 left-3 right-3 bg-black bg-opacity-75 text-white p-2 rounded-lg">
                         <p className="text-sm">{viewingProduct.fotos[currentImageIndex].descricao}</p>
@@ -737,12 +1013,10 @@ const HospitalProductsSystem = () => {
                       </>
                     )}
                     
-                    {/* Contador de imagens */}
                     <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-sm">
                       {currentImageIndex + 1} / {viewingProduct.fotos.length}
                     </div>
                     
-                    {/* Botões de ação */}
                     <div className="absolute bottom-2 right-2 flex space-x-2">
                       <button
                         onClick={openZoom}
@@ -764,7 +1038,6 @@ const HospitalProductsSystem = () => {
                     </div>
                   </div>
                   
-                  {/* Thumbnail Navigation */}
                   {viewingProduct.fotos.length > 1 && (
                     <div className="flex space-x-2 overflow-x-auto pb-2">
                       {viewingProduct.fotos.map((foto, index) => (
@@ -785,7 +1058,6 @@ const HospitalProductsSystem = () => {
                     </div>
                   )}
 
-                  {/* Detalhes da Imagem Atual */}
                   {viewingProduct.fotos[currentImageIndex] && (
                     <div className="bg-gray-50 rounded-lg p-3">
                       <h4 className="font-semibold text-gray-800 mb-2 text-sm">Detalhes da Imagem {currentImageIndex + 1}</h4>
@@ -813,9 +1085,7 @@ const HospitalProductsSystem = () => {
               )}
             </div>
 
-            {/* Product Details */}
             <div className="space-y-4">
-              {/* Informações do Produto */}
               <div className="bg-white rounded-xl shadow-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Informações do Produto</h3>
                 <div className="space-y-3">
@@ -846,7 +1116,6 @@ const HospitalProductsSystem = () => {
                     </div>
                   )}
 
-                  {/* Informações de Data */}
                   {(viewingProduct.createdAt || viewingProduct.updatedAt) && (
                     <div className="pt-3 border-t border-gray-200">
                       {viewingProduct.createdAt && (
@@ -864,7 +1133,6 @@ const HospitalProductsSystem = () => {
                 </div>
               </div>
 
-              {/* Lista de Descrições das Fotos */}
               {viewingProduct.fotos && viewingProduct.fotos.length > 0 && (
                 <div className="bg-white rounded-xl shadow-lg p-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Descrições das Fotos</h3>
@@ -888,11 +1156,9 @@ const HospitalProductsSystem = () => {
           </div>
         </div>
 
-        {/* Modal de Zoom */}
         {isZoomOpen && viewingProduct && viewingProduct.fotos && viewingProduct.fotos[currentImageIndex] && (
           <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
             <div className="relative w-full h-full overflow-auto">
-              {/* Botão fechar */}
               <button
                 onClick={closeZoom}
                 className="fixed top-4 right-4 bg-white hover:bg-gray-100 text-gray-800 p-2 rounded-full shadow-lg z-20 transition-all"
@@ -901,7 +1167,6 @@ const HospitalProductsSystem = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Container da imagem com scroll */}
               <div className="flex items-center justify-center min-h-full p-4">
                 <img
                   src={viewingProduct.fotos[currentImageIndex].url}
@@ -912,7 +1177,6 @@ const HospitalProductsSystem = () => {
                 />
               </div>
 
-              {/* Informações da imagem */}
               <div className="fixed bottom-4 left-4 right-4 bg-black bg-opacity-75 text-white p-3 rounded-lg z-10">
                 <h4 className="font-semibold text-lg mb-1">{viewingProduct.nome}</h4>
                 <p className="text-sm opacity-90">
@@ -925,7 +1189,6 @@ const HospitalProductsSystem = () => {
                 )}
               </div>
 
-              {/* Navegação no zoom (se houver múltiplas fotos) */}
               {viewingProduct.fotos.length > 1 && (
                 <>
                   <button

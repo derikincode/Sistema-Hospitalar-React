@@ -199,27 +199,20 @@ const Login = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* Informações Adicionais */}
-        <div className="mt-6 text-center">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-blue-900 mb-2">
-              Credenciais de Acesso:
-            </h3>
-            <div className="space-y-1 text-sm text-blue-700">
-              <p>
-                <span className="font-medium">Admin:</span> usuário: <code className="bg-blue-100 px-1 rounded">adm</code> | senha: <code className="bg-blue-100 px-1 rounded">123</code>
-              </p>
-              <p>
-                <span className="font-medium">Usuário:</span> usuário: <code className="bg-blue-100 px-1 rounded">user</code> | senha: <code className="bg-blue-100 px-1 rounded">123</code>
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-gray-500">
-          <p>Sistema de Gestão Hospitalar © 2024</p>
-          <p className="mt-1">Todos os direitos reservados</p>
+          <p>
+            Desenvolvido por{' '}
+            <a 
+              href="https://github.com/derikincode" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+            >
+              Derik
+            </a>{' '}
+            © 2025
+          </p>
         </div>
       </div>
     </div>
