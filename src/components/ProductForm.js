@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Edit3, Camera, ArrowLeft, Save, X, Upload, ImageIcon, CheckCircle, AlertCircle, Trash2, ChevronDown } from 'lucide-react';
+import { Plus, Package, Edit3, Camera, ArrowLeft, Save, X, Upload, ImageIcon, CheckCircle, AlertCircle, Trash2, ChevronDown, Database } from 'lucide-react';
 
 // Dados das marcas com logos
 const marcasData = {
@@ -116,7 +116,8 @@ const ProductForm = ({
   editingProduct, 
   products, 
   onSave, 
-  onCancel 
+  onCancel,
+  databaseService // Recebe o serviço de banco de dados
 }) => {
   const [formData, setFormData] = useState({
     codigo: '',
@@ -129,6 +130,7 @@ const ProductForm = ({
   
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
 
   useEffect(() => {
     if (editingProduct) {
@@ -145,7 +147,7 @@ const ProductForm = ({
     }
   }, [editingProduct]);
 
-  const validateForm = () => {
+  const validateForm = async () => {
     const errors = {};
     
     if (!formData.codigo.trim()) {
@@ -164,13 +166,23 @@ const ProductForm = ({
       errors.setor = 'Setor é obrigatório';
     }
 
-    const codeExists = products.some(product => 
-      product.codigo.toLowerCase() === formData.codigo.toLowerCase() && 
-      (!editingProduct || product.id !== editingProduct.id)
-    );
-    
-    if (codeExists) {
-      errors.codigo = 'Este código já existe';
+    // Verifica código duplicado no banco de dados
+    if (formData.codigo.trim() && databaseService) {
+      setIsCheckingCode(true);
+      try {
+        const codeExists = await databaseService.checkCodeExists(
+          formData.codigo.toLowerCase(),
+          editingProduct ? editingProduct.id : null
+        );
+        
+        if (codeExists) {
+          errors.codigo = 'Este código já está em uso';
+        }
+      } catch (error) {
+        console.error('Erro ao verificar código:', error);
+      } finally {
+        setIsCheckingCode(false);
+      }
     }
 
     setFormErrors(errors);
@@ -268,7 +280,8 @@ const ProductForm = ({
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    const isValid = await validateForm();
+    if (!isValid) {
       const firstErrorElement = document.querySelector('.error-input');
       if (firstErrorElement) {
         firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -326,7 +339,13 @@ const ProductForm = ({
               </div>
             </div>
             
-            <div className="flex space-x-3">
+            <div className="flex items-center space-x-3">
+              {/* Indicador de salvamento no BD */}
+              <div className="bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center space-x-2">
+                <Database className="w-4 h-4 text-white" />
+                <span className="text-white text-sm">Salvo no BD Local</span>
+              </div>
+              
               <button
                 onClick={handleCancel}
                 className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold"
@@ -336,15 +355,20 @@ const ProductForm = ({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isCheckingCode}
                 className={`bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold ${
-                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                  (isSubmitting || isCheckingCode) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 {isSubmitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <span>Salvando...</span>
+                  </>
+                ) : isCheckingCode ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Verificando...</span>
                   </>
                 ) : (
                   <>
@@ -382,6 +406,9 @@ const ProductForm = ({
                       <span className="text-red-500">*</span>
                       {formData.codigo && !formErrors.codigo && (
                         <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                      )}
+                      {isCheckingCode && (
+                        <div className="w-3.5 h-3.5 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                       )}
                     </label>
                     <input

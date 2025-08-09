@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Plus, Package, Edit3, Trash2, Search, Eye, ChevronLeft, ChevronRight, ArrowLeft, Download, ZoomIn, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Package, Edit3, Trash2, Search, Eye, ChevronLeft, ChevronRight, ArrowLeft, Download, ZoomIn, X, Database, RefreshCw, FileDown, FileUp } from 'lucide-react';
 import ProductForm from './ProductForm';
+import databaseService from '../services/database';
 
 const HospitalProductsSystem = () => {
   const [products, setProducts] = useState([]);
@@ -10,17 +11,68 @@ const HospitalProductsSystem = () => {
   const [viewingProduct, setViewingProduct] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dbStats, setDbStats] = useState(null);
+  const [showDbStatus, setShowDbStatus] = useState(false);
 
-  const handleSaveProduct = (productData) => {
-    if (editingProduct) {
-      setProducts(prev => prev.map(product => 
-        product.id === editingProduct.id ? productData : product
-      ));
-    } else {
-      setProducts(prev => [...prev, productData]);
+  // Carrega produtos do banco de dados ao inicializar
+  useEffect(() => {
+    loadProducts();
+    loadStats();
+  }, []);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+      const loadedProducts = await databaseService.getAllProducts();
+      setProducts(loadedProducts);
+      console.log(`Carregados ${loadedProducts.length} produtos do banco de dados`);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+      alert('Erro ao carregar produtos do banco de dados');
+    } finally {
+      setIsLoading(false);
     }
-    setEditingProduct(null);
-    setCurrentPage('list');
+  };
+
+  const loadStats = async () => {
+    try {
+      const stats = await databaseService.getStats();
+      setDbStats(stats);
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+    }
+  };
+
+  const handleSaveProduct = async (productData) => {
+    try {
+      if (editingProduct) {
+        // Mantém o createdAt original ao editar
+        const originalProduct = await databaseService.getProduct(editingProduct.id);
+        const updatedProduct = await databaseService.updateProduct({
+          ...productData,
+          createdAt: originalProduct.createdAt
+        });
+        
+        setProducts(prev => prev.map(product => 
+          product.id === editingProduct.id ? updatedProduct : product
+        ));
+      } else {
+        const newProduct = await databaseService.addProduct(productData);
+        setProducts(prev => [...prev, newProduct]);
+      }
+      
+      setEditingProduct(null);
+      setCurrentPage('list');
+      loadStats(); // Atualiza estatísticas
+      
+      // Feedback visual
+      const message = editingProduct ? 'Produto atualizado com sucesso!' : 'Produto cadastrado com sucesso!';
+      showNotification(message, 'success');
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error);
+      alert('Erro ao salvar produto no banco de dados');
+    }
   };
 
   const handleEdit = (product) => {
@@ -28,13 +80,87 @@ const HospitalProductsSystem = () => {
     setCurrentPage('form');
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      setProducts(prev => prev.filter(product => product.id !== id));
-      if (currentPage === 'view') {
-        setCurrentPage('list');
+      try {
+        await databaseService.deleteProduct(id);
+        setProducts(prev => prev.filter(product => product.id !== id));
+        
+        if (currentPage === 'view') {
+          setCurrentPage('list');
+        }
+        
+        loadStats(); // Atualiza estatísticas
+        showNotification('Produto excluído com sucesso!', 'success');
+      } catch (error) {
+        console.error('Erro ao excluir produto:', error);
+        alert('Erro ao excluir produto do banco de dados');
       }
     }
+  };
+
+  // Função para mostrar notificações
+  const showNotification = (message, type = 'info') => {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2 animate-slide-in ${
+      type === 'success' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+    }`;
+    notification.innerHTML = `
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <span>${message}</span>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.classList.add('animate-slide-out');
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  };
+
+  // Função para exportar dados
+  const handleExportData = async () => {
+    try {
+      const jsonData = await databaseService.exportProducts();
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `produtos-hospital-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showNotification('Dados exportados com sucesso!', 'success');
+    } catch (error) {
+      console.error('Erro ao exportar dados:', error);
+      alert('Erro ao exportar dados');
+    }
+  };
+
+  // Função para importar dados
+  const handleImportData = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const count = await databaseService.importProducts(e.target.result);
+        await loadProducts();
+        await loadStats();
+        showNotification(`${count} produtos importados com sucesso!`, 'success');
+      } catch (error) {
+        console.error('Erro ao importar dados:', error);
+        alert('Erro ao importar dados. Verifique o formato do arquivo.');
+      }
+    };
+    reader.readAsText(file);
+    
+    // Limpa o input para permitir reimportar o mesmo arquivo
+    event.target.value = '';
   };
 
   const filteredProducts = products.filter(product =>
@@ -100,6 +226,7 @@ const HospitalProductsSystem = () => {
         products={products}
         onSave={handleSaveProduct}
         onCancel={goBackToList}
+        databaseService={databaseService}
       />
     );
   }
@@ -115,7 +242,7 @@ const HospitalProductsSystem = () => {
             <div className="absolute bottom-0 left-0 -mb-6 -ml-6 w-32 h-32 bg-white bg-opacity-5 rounded-full"></div>
             
             <div className="relative">
-              {/* Título e Botão */}
+              {/* Título e Botões */}
               <div className="flex flex-col lg:flex-row items-center justify-between">
                 <div className="flex items-center space-x-3 mb-3 lg:mb-0">
                   <div className="bg-white bg-opacity-20 backdrop-blur-sm p-3 rounded-xl shadow-lg">
@@ -127,14 +254,85 @@ const HospitalProductsSystem = () => {
                   </div>
                 </div>
                 
-                <button
-                  onClick={goToNewProduct}
-                  className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Novo Produto</span>
-                </button>
+                <div className="flex space-x-2">
+                  {/* Botão Status do BD */}
+                  <button
+                    onClick={() => setShowDbStatus(!showDbStatus)}
+                    className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    title="Status do Banco de Dados"
+                  >
+                    <Database className="w-5 h-5" />
+                    {dbStats && (
+                      <span className="hidden md:inline text-sm font-medium">
+                        {dbStats.totalProducts} produtos
+                      </span>
+                    )}
+                  </button>
+                  
+                  {/* Botão Novo Produto */}
+                  <button
+                    onClick={goToNewProduct}
+                    className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Novo Produto</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Status do Banco de Dados (expansível) */}
+              {showDbStatus && dbStats && (
+                <div className="mt-4 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
+                    <div>
+                      <p className="text-xs opacity-80">Total de Produtos</p>
+                      <p className="text-xl font-bold">{dbStats.totalProducts}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs opacity-80">Marcas</p>
+                      <p className="text-xl font-bold">{dbStats.totalBrands}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs opacity-80">Setores</p>
+                      <p className="text-xl font-bold">{dbStats.totalSectors}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs opacity-80">Total de Imagens</p>
+                      <p className="text-xl font-bold">{dbStats.totalImages}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Botões de Importar/Exportar */}
+                  <div className="flex space-x-2 mt-4">
+                    <button
+                      onClick={handleExportData}
+                      className="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all text-sm"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span>Exportar Dados</span>
+                    </button>
+                    
+                    <label className="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all cursor-pointer text-sm">
+                      <FileUp className="w-4 h-4" />
+                      <span>Importar Dados</span>
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportData}
+                        className="hidden"
+                      />
+                    </label>
+                    
+                    <button
+                      onClick={loadProducts}
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center transition-all"
+                      title="Recarregar dados"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -199,8 +397,18 @@ const HospitalProductsSystem = () => {
             </div>
           </div>
 
-          {/* Tabela de Produtos Moderna - Só aparece se houver produtos */}
-          {products.length > 0 && (
+          {/* Loading State */}
+          {isLoading && (
+            <div className="bg-white rounded-xl shadow-xl p-12 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-600">Carregando produtos do banco de dados...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Tabela de Produtos Moderna - Só aparece se houver produtos e não estiver carregando */}
+          {!isLoading && products.length > 0 && (
             <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-3 border-b border-gray-200">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -369,7 +577,7 @@ const HospitalProductsSystem = () => {
           )}
 
           {/* Mensagem quando não há produtos ou busca sem resultados */}
-          {(products.length === 0 || (products.length > 0 && filteredProducts.length === 0)) && (
+          {!isLoading && (products.length === 0 || (products.length > 0 && filteredProducts.length === 0)) && (
             <div className="bg-white rounded-xl shadow-xl p-12 text-center">
               <div className="max-w-md mx-auto">
                 <div className="bg-gradient-to-br from-blue-100 to-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -416,6 +624,39 @@ const HospitalProductsSystem = () => {
             </div>
           )}
         </div>
+
+        {/* Adiciona estilos para animações */}
+        <style jsx>{`
+          @keyframes slide-in {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+          
+          @keyframes slide-out {
+            from {
+              transform: translateX(0);
+              opacity: 1;
+            }
+            to {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+          }
+          
+          .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
+          }
+          
+          .animate-slide-out {
+            animation: slide-out 0.3s ease-out;
+          }
+        `}</style>
       </div>
     );
   }
@@ -602,6 +843,22 @@ const HospitalProductsSystem = () => {
                     <div>
                       <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Descrição Geral</h4>
                       <p className="text-gray-700 leading-relaxed text-sm">{viewingProduct.descricao}</p>
+                    </div>
+                  )}
+
+                  {/* Informações de Data */}
+                  {(viewingProduct.createdAt || viewingProduct.updatedAt) && (
+                    <div className="pt-3 border-t border-gray-200">
+                      {viewingProduct.createdAt && (
+                        <div className="text-xs text-gray-500">
+                          Cadastrado em: {new Date(viewingProduct.createdAt).toLocaleDateString('pt-BR')}
+                        </div>
+                      )}
+                      {viewingProduct.updatedAt && (
+                        <div className="text-xs text-gray-500">
+                          Última atualização: {new Date(viewingProduct.updatedAt).toLocaleDateString('pt-BR')}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
