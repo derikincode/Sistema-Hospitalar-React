@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Edit3, Trash2, Search, Eye, ArrowLeft, Download, ZoomIn, X, Database, RefreshCw, FileDown, FileUp, LogOut, User, Shield, Users, ChevronDown, Filter } from 'lucide-react';
+import { Plus, Package, Edit3, Trash2, Search, Eye, ArrowLeft, Download, ZoomIn, X, Database, RefreshCw, FileDown, FileUp, LogOut, User, Shield, Users, ChevronDown, Filter, Upload } from 'lucide-react';
 import ProductForm from './ProductForm';
 import ProductView from './ProductView';
-import databaseService from '../services/DatabaseManager';
+import databaseService from '../services/DatabaseService';
 
-const ProductManager = ({ currentUser, onLogout }) => {
+const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigration, dbConnectionStatus }) => {
   const [products, setProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState('list');
   const [editingProduct, setEditingProduct] = useState(null);
@@ -32,10 +32,10 @@ const ProductManager = ({ currentUser, onLogout }) => {
     try {
       const loadedProducts = await databaseService.getAllProducts();
       setProducts(loadedProducts);
-      console.log(`Carregados ${loadedProducts.length} produtos do banco de dados`);
+      console.log(`Carregados ${loadedProducts.length} produtos do Supabase`);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
-      alert('Erro ao carregar produtos do banco de dados');
+      showNotification('Erro ao carregar produtos do banco de dados', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -59,10 +59,9 @@ const ProductManager = ({ currentUser, onLogout }) => {
   const handleSaveProduct = async (productData) => {
     try {
       if (editingProduct) {
-        const originalProduct = await databaseService.getProduct(editingProduct.id);
         const updatedProduct = await databaseService.updateProduct({
           ...productData,
-          createdAt: originalProduct.createdAt
+          id: editingProduct.id
         });
         
         setProducts(prev => prev.map(product => 
@@ -70,7 +69,7 @@ const ProductManager = ({ currentUser, onLogout }) => {
         ));
       } else {
         const newProduct = await databaseService.addProduct(productData);
-        setProducts(prev => [...prev, newProduct]);
+        setProducts(prev => [newProduct, ...prev]);
       }
       
       setEditingProduct(null);
@@ -81,7 +80,7 @@ const ProductManager = ({ currentUser, onLogout }) => {
       showNotification(message, 'success');
     } catch (error) {
       console.error('Erro ao salvar produto:', error);
-      alert('Erro ao salvar produto no banco de dados');
+      showNotification('Erro ao salvar produto no banco de dados', 'error');
     }
   };
 
@@ -104,28 +103,9 @@ const ProductManager = ({ currentUser, onLogout }) => {
         showNotification('Produto excluído com sucesso!', 'success');
       } catch (error) {
         console.error('Erro ao excluir produto:', error);
-        alert('Erro ao excluir produto do banco de dados');
+        showNotification('Erro ao excluir produto do banco de dados', 'error');
       }
     }
-  };
-
-  const showNotification = (message, type = 'info') => {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2 animate-slide-in ${
-      type === 'success' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
-    }`;
-    notification.innerHTML = `
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-      <span>${message}</span>
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.classList.add('animate-slide-out');
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
   };
 
   const handleExportData = async () => {
@@ -144,7 +124,7 @@ const ProductManager = ({ currentUser, onLogout }) => {
       showNotification('Dados exportados com sucesso!', 'success');
     } catch (error) {
       console.error('Erro ao exportar dados:', error);
-      alert('Erro ao exportar dados');
+      showNotification('Erro ao exportar dados', 'error');
     }
   };
 
@@ -161,7 +141,7 @@ const ProductManager = ({ currentUser, onLogout }) => {
         showNotification(`${count} produtos importados com sucesso!`, 'success');
       } catch (error) {
         console.error('Erro ao importar dados:', error);
-        alert('Erro ao importar dados. Verifique o formato do arquivo.');
+        showNotification('Erro ao importar dados. Verifique o formato do arquivo.', 'error');
       }
     };
     reader.readAsText(file);
@@ -251,7 +231,15 @@ const ProductManager = ({ currentUser, onLogout }) => {
                   </div>
                   <div className="text-white">
                     <h1 className="text-2xl md:text-3xl font-bold mb-1">Sistema de Gestão Hospitalar</h1>
-                    <p className="text-blue-100 text-sm md:text-base">Controle inteligente de produtos e equipamentos médicos</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-blue-100 text-sm md:text-base">Controle inteligente de produtos e equipamentos médicos</p>
+                      <div className={`w-2 h-2 rounded-full ${
+                        dbConnectionStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'
+                      }`}></div>
+                      <span className="text-blue-100 text-xs">
+                        {dbConnectionStatus === 'connected' ? 'Online' : 'Offline'}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
@@ -305,9 +293,16 @@ const ProductManager = ({ currentUser, onLogout }) => {
                       <Database className="w-4 h-4 mr-2" />
                       Painel Administrativo
                     </h4>
-                    <span className="bg-red-500 bg-opacity-80 text-white px-2 py-1 rounded-full text-xs font-bold">
-                      ADMIN
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="bg-red-500 bg-opacity-80 text-white px-2 py-1 rounded-full text-xs font-bold">
+                        ADMIN
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                        dbConnectionStatus === 'connected' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                      }`}>
+                        SUPABASE
+                      </span>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white mb-4">
@@ -329,18 +324,26 @@ const ProductManager = ({ currentUser, onLogout }) => {
                     </div>
                   </div>
                   
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={handleExportData}
-                      className="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all text-sm"
+                      onClick={onShowMigration}
+                      className="flex-1 min-w-32 bg-purple-600 bg-opacity-80 hover:bg-opacity-100 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all text-sm"
                     >
-                      <FileDown className="w-4 h-4" />
-                      <span>Exportar Dados</span>
+                      <Upload className="w-4 h-4" />
+                      <span>Migração</span>
                     </button>
                     
-                    <label className="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all cursor-pointer text-sm">
+                    <button
+                      onClick={handleExportData}
+                      className="flex-1 min-w-32 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all text-sm"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span>Exportar</span>
+                    </button>
+                    
+                    <label className="flex-1 min-w-32 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all cursor-pointer text-sm">
                       <FileUp className="w-4 h-4" />
-                      <span>Importar Dados</span>
+                      <span>Importar</span>
                       <input
                         type="file"
                         accept=".json"
@@ -426,7 +429,10 @@ const ProductManager = ({ currentUser, onLogout }) => {
             <div className="bg-white rounded-xl shadow-xl p-12 text-center">
               <div className="flex flex-col items-center">
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-gray-600">Carregando produtos do banco de dados...</p>
+                <p className="text-gray-600">Carregando produtos do Supabase...</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  {dbConnectionStatus === 'connected' ? 'Conectado ao banco na nuvem' : 'Verificando conexão...'}
+                </p>
               </div>
             </div>
           )}
@@ -780,13 +786,27 @@ const ProductManager = ({ currentUser, onLogout }) => {
                 </p>
                 
                 {products.length === 0 ? (
-                  <button
-                    onClick={goToNewProduct}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl inline-flex items-center space-x-3 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span>Cadastrar Primeiro Produto</span>
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      onClick={goToNewProduct}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl inline-flex items-center space-x-3 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold"
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span>Cadastrar Primeiro Produto</span>
+                    </button>
+                    
+                    {currentUser.role === 'admin' && (
+                      <div className="mt-4">
+                        <button
+                          onClick={onShowMigration}
+                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-6 py-2 rounded-lg inline-flex items-center space-x-2 transition-all duration-200 text-sm"
+                        >
+                          <Upload className="w-4 h-4" />
+                          <span>Migrar Dados Existentes</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
@@ -850,12 +870,22 @@ const ProductManager = ({ currentUser, onLogout }) => {
               <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Sessão Ativa</p>
-                    <p className="text-sm text-gray-700 font-medium">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Conexão</p>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        dbConnectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'
+                      }`}></div>
+                      <p className="text-sm text-gray-700 font-medium">
+                        {dbConnectionStatus === 'connected' ? 'Supabase Online' : 'Supabase Offline'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Sessão</p>
+                    <p className="text-xs text-gray-600">
                       {new Date(currentUser.loginTime).toLocaleString('pt-BR')}
                     </p>
                   </div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 </div>
               </div>
 

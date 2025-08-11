@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit3, Trash2, Package, ChevronLeft, ChevronRight, Download, ZoomIn, X } from 'lucide-react';
+import { ArrowLeft, Edit3, Trash2, Package, ChevronLeft, ChevronRight, Download, ZoomIn, X, Lock } from 'lucide-react';
 
 const ProductView = ({ 
   viewingProduct, 
   onEdit, 
   onDelete, 
   onBack,
-  showNotification 
+  showNotification,
+  isAdmin = false // Recebe se o usuário é admin
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
@@ -45,10 +46,18 @@ const ProductView = ({
   };
 
   const handleEdit = () => {
+    if (!isAdmin) {
+      alert('Acesso negado! Apenas administradores podem editar produtos.');
+      return;
+    }
     onEdit(viewingProduct);
   };
 
   const handleDelete = () => {
+    if (!isAdmin) {
+      alert('Acesso negado! Apenas administradores podem excluir produtos.');
+      return;
+    }
     onDelete(viewingProduct.id);
   };
 
@@ -74,21 +83,56 @@ const ProductView = ({
                 <p className="text-gray-600 text-sm">Código: {viewingProduct.codigo}</p>
               </div>
             </div>
+            
             <div className="flex space-x-2">
-              <button
-                onClick={handleEdit}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
-              >
-                <Edit3 className="w-4 h-4" />
-                <span>Editar</span>
-              </button>
-              <button
-                onClick={handleDelete}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Excluir</span>
-              </button>
+              {/* Aviso de modo visualização para usuários não-admin */}
+              {!isAdmin && (
+                <div className="bg-amber-100 border border-amber-300 text-amber-800 px-3 py-2 rounded-lg flex items-center space-x-2 text-sm">
+                  <Lock className="w-4 h-4" />
+                  <span>Modo Visualização</span>
+                </div>
+              )}
+              
+              {/* Botões de ação - condicionais baseados no role */}
+              {isAdmin ? (
+                <>
+                  <button
+                    onClick={handleEdit}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Excluir</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleEdit}
+                    className="bg-gray-300 text-gray-500 px-3 py-2 rounded-lg flex items-center space-x-2 cursor-not-allowed text-sm"
+                    title="Editar (Requer permissão de administrador)"
+                    disabled
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="bg-gray-300 text-gray-500 px-3 py-2 rounded-lg flex items-center space-x-2 cursor-not-allowed text-sm"
+                    title="Excluir (Requer permissão de administrador)"
+                    disabled
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Excluir</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -250,6 +294,30 @@ const ProductView = ({
                 )}
               </div>
             </div>
+
+            {/* Aviso de permissões para usuários não-admin */}
+            {!isAdmin && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="bg-amber-100 p-2 rounded-full flex-shrink-0">
+                    <Lock className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-amber-800 font-semibold text-sm mb-1">Acesso Limitado</h3>
+                    <p className="text-amber-700 text-sm leading-relaxed">
+                      Você está visualizando este produto com permissões limitadas. Para editar ou excluir produtos, 
+                      é necessário ter privilégios de administrador.
+                    </p>
+                    <div className="mt-2 text-xs text-amber-600">
+                      <p>• ✅ Visualizar produtos e imagens</p>
+                      <p>• ✅ Baixar imagens</p>
+                      <p>• ❌ Editar informações</p>
+                      <p>• ❌ Excluir produtos</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {viewingProduct.fotos && viewingProduct.fotos.length > 0 && (
               <div className="bg-white rounded-xl shadow-lg p-4">
