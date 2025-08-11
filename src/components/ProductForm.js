@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Edit3, Camera, ArrowLeft, Save, X, Upload, ImageIcon, CheckCircle, AlertCircle, Trash2, ChevronDown, Database } from 'lucide-react';
+import { Plus, Package, Camera, ArrowLeft, Save, X, Upload, ImageIcon, CheckCircle, AlertCircle, Trash2, ChevronDown, Database } from 'lucide-react';
 
 // Dados das marcas com logos
 const marcasData = {
@@ -343,7 +343,7 @@ const ProductForm = ({
               {/* Indicador de salvamento no BD */}
               <div className="bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center space-x-2">
                 <Database className="w-4 h-4 text-white" />
-                <span className="text-white text-sm">Salvo no BD Local</span>
+                <span className="text-white text-sm">Salvo no Supabase</span>
               </div>
               
               <button

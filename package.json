@@ -47,4 +47,5 @@
     "tailwindcss": "^3.3.2",
     "supabase": "^1.127.4"
   }
+  
 }

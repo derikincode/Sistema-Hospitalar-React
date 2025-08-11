@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Package, Edit3, Trash2, Search, Eye, ArrowLeft, Download, ZoomIn, X, Database, RefreshCw, FileDown, FileUp, LogOut, User, Shield, Users, ChevronDown, Filter, Upload } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Package, Edit3, Trash2, Search, Eye, RefreshCw, FileDown, FileUp, LogOut, Shield, Users, Filter, Upload, X, Database } from 'lucide-react';
 import ProductForm from './ProductForm';
 import ProductView from './ProductView';
 import databaseService from '../services/DatabaseService';
@@ -22,12 +22,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    loadProducts();
-    loadStats();
-  }, []);
-
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setIsLoading(true);
     try {
       const loadedProducts = await databaseService.getAllProducts();
@@ -39,16 +34,21 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showNotification]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const stats = await databaseService.getStats();
       setDbStats(stats);
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+    loadStats();
+  }, [loadProducts, loadStats]);
 
   const handleLogout = () => {
     if (window.confirm('Tem certeza que deseja sair do sistema?')) {
@@ -903,28 +903,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
         )}
 
         <style jsx>{`
-          @keyframes slide-in {
-            from {
-              transform: translateX(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
-          }
-          
-          @keyframes slide-out {
-            from {
-              transform: translateX(0);
-              opacity: 1;
-            }
-            to {
-              transform: translateX(100%);
-              opacity: 0;
-            }
-          }
-          
           @keyframes fadeIn {
             from {
               opacity: 0;
@@ -934,14 +912,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
               opacity: 1;
               transform: translateY(0);
             }
-          }
-          
-          .animate-slide-in {
-            animation: slide-in 0.3s ease-out;
-          }
-          
-          .animate-slide-out {
-            animation: slide-out 0.3s ease-out;
           }
         `}</style>
       </div>
