@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Package, Edit3, Trash2, Search, Eye, RefreshCw, FileDown, FileUp, LogOut, Shield, Users, Filter, Upload, X, Database } from 'lucide-react';
+import { Plus, Package, Edit3, Trash2, Search, Eye, RefreshCw, FileDown, FileUp, LogOut, Shield, Users, Filter, X, Database } from 'lucide-react';
 import ProductForm from './ProductForm';
 import ProductView from './ProductView';
 import databaseService from '../services/DatabaseService';
 
-const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigration, dbConnectionStatus }) => {
+const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionStatus }) => {
   const [products, setProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState('list');
   const [editingProduct, setEditingProduct] = useState(null);
@@ -211,6 +211,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
         onDelete={handleDelete}
         onBack={goBackToList}
         showNotification={showNotification}
+        isAdmin={currentUser.role === 'admin'}
       />
     );
   }
@@ -325,14 +326,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={onShowMigration}
-                      className="flex-1 min-w-32 bg-purple-600 bg-opacity-80 hover:bg-opacity-100 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all text-sm"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Migração</span>
-                    </button>
-                    
                     <button
                       onClick={handleExportData}
                       className="flex-1 min-w-32 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all text-sm"
@@ -736,20 +729,24 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
                             >
                               <Eye className="h-5 w-5" />
                             </button>
-                            <button
-                              onClick={() => handleEdit(product)}
-                              className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-lg transition-all duration-200 transform hover:scale-110"
-                              title="Editar"
-                            >
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product.id)}
-                              className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-110"
-                              title="Excluir"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
+                            {currentUser.role === 'admin' && (
+                              <>
+                                <button
+                                  onClick={() => handleEdit(product)}
+                                  className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                                  title="Editar"
+                                >
+                                  <Edit3 className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(product.id)}
+                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="h-5 w-5" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -794,18 +791,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, onShowMigrati
                       <Plus className="w-5 h-5" />
                       <span>Cadastrar Primeiro Produto</span>
                     </button>
-                    
-                    {currentUser.role === 'admin' && (
-                      <div className="mt-4">
-                        <button
-                          onClick={onShowMigration}
-                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-6 py-2 rounded-lg inline-flex items-center space-x-2 transition-all duration-200 text-sm"
-                        >
-                          <Upload className="w-4 h-4" />
-                          <span>Migrar Dados Existentes</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">

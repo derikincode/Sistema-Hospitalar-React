@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Login from './components/LoginSystem';
 import HospitalProductsSystem from './components/ProductManager';
-import MigrationPanel from './components/MigrationPanel';
 import databaseService from './services/DatabaseService';
 import './App.css';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [showMigration, setShowMigration] = useState(false);
   const [dbConnectionStatus, setDbConnectionStatus] = useState('checking');
 
   // Verifica se há um usuário logado ao carregar a aplicação
@@ -167,17 +165,8 @@ function App() {
         currentUser={currentUser} 
         onLogout={handleLogout}
         showNotification={showNotification}
-        onShowMigration={() => setShowMigration(true)}
         dbConnectionStatus={dbConnectionStatus}
       />
-
-      {/* Painel de Migração */}
-      {showMigration && (
-        <MigrationPanel
-          onClose={() => setShowMigration(false)}
-          showNotification={showNotification}
-        />
-      )}
 
       {/* Estilos para animações */}
       <style jsx>{`
