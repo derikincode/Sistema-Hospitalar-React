@@ -558,7 +558,7 @@ class DatabaseService {
       const startTime = Date.now();
       
       // Teste de conectividade
-      const connectionTest = await this.testConnection();
+      await this.testConnection();
       const latency = Date.now() - startTime;
       
       // Teste de escrita (criação de um registro temporário)
