@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Package, Edit3, Trash2, Search, Eye, RefreshCw, FileDown, FileUp, LogOut, Shield, Users, Filter, X, Database } from 'lucide-react';
+import { Plus, Package, Edit3, Trash2, Search, Eye, RefreshCw, FileDown, FileUp, LogOut, Shield, Users, Filter, X, Database, HardDrive, Activity, Wifi, WifiOff, CheckCircle, AlertTriangle, Info, Settings } from 'lucide-react';
 import ProductForm from './ProductForm';
 import ProductView from './ProductView';
+import SupabaseStatusPanel from './SupabaseStatusPanel';
 import databaseService from '../services/DatabaseService';
 
 const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionStatus }) => {
@@ -14,6 +15,9 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
   const [dbStats, setDbStats] = useState(null);
   const [showDbStatus, setShowDbStatus] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [storageInfo, setStorageInfo] = useState(null);
+  const [connectionLatency, setConnectionLatency] = useState(null);
+  const [showDetailedStatus, setShowDetailedStatus] = useState(false);
   
   const [filters, setFilters] = useState({
     marca: '',
@@ -45,10 +49,51 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
     }
   }, []);
 
+  const checkStorageInfo = useCallback(async () => {
+    try {
+      // Simulação das informações de armazenamento (você pode adaptar conforme sua configuração do Supabase)
+      const totalImages = products.reduce((sum, p) => sum + (p.fotos ? p.fotos.length : 0), 0);
+      const estimatedStoragePerImage = 500; // KB estimado por imagem
+      const totalEstimatedStorage = totalImages * estimatedStoragePerImage;
+      
+      // Limite do plano gratuito do Supabase: 500MB
+      const freeLimit = 500 * 1024; // KB
+      const usagePercentage = (totalEstimatedStorage / freeLimit) * 100;
+
+      setStorageInfo({
+        totalImages,
+        estimatedStorage: totalEstimatedStorage,
+        freeLimit,
+        usagePercentage: Math.min(usagePercentage, 100),
+        remainingStorage: Math.max(freeLimit - totalEstimatedStorage, 0)
+      });
+    } catch (error) {
+      console.error('Erro ao calcular informações de armazenamento:', error);
+    }
+  }, [products]);
+
+  const checkConnectionLatency = useCallback(async () => {
+    try {
+      const startTime = Date.now();
+      await databaseService.testConnection();
+      const endTime = Date.now();
+      setConnectionLatency(endTime - startTime);
+    } catch (error) {
+      setConnectionLatency(null);
+    }
+  }, []);
+
   useEffect(() => {
     loadProducts();
     loadStats();
-  }, [loadProducts, loadStats]);
+    checkConnectionLatency();
+  }, [loadProducts, loadStats, checkConnectionLatency]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      checkStorageInfo();
+    }
+  }, [products, checkStorageInfo]);
 
   const handleLogout = () => {
     if (window.confirm('Tem certeza que deseja sair do sistema?')) {
@@ -149,6 +194,42 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
     event.target.value = '';
   };
 
+  const refreshData = async () => {
+    await loadProducts();
+    await loadStats();
+    await checkConnectionLatency();
+    showNotification('Dados atualizados!', 'success');
+  };
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getConnectionStatus = () => {
+    if (dbConnectionStatus === 'connected') {
+      if (connectionLatency !== null) {
+        if (connectionLatency < 200) return { icon: CheckCircle, color: 'green', text: 'Excelente', detail: `${connectionLatency}ms` };
+        if (connectionLatency < 500) return { icon: CheckCircle, color: 'yellow', text: 'Boa', detail: `${connectionLatency}ms` };
+        return { icon: AlertTriangle, color: 'orange', text: 'Lenta', detail: `${connectionLatency}ms` };
+      }
+      return { icon: CheckCircle, color: 'green', text: 'Online', detail: '' };
+    }
+    return { icon: WifiOff, color: 'red', text: 'Offline', detail: '' };
+  };
+
+  const getStorageStatus = () => {
+    if (!storageInfo) return { color: 'gray', text: 'Calculando...' };
+    
+    if (storageInfo.usagePercentage < 50) return { color: 'green', text: 'Baixo uso' };
+    if (storageInfo.usagePercentage < 80) return { color: 'yellow', text: 'Uso moderado' };
+    if (storageInfo.usagePercentage < 95) return { color: 'orange', text: 'Uso alto' };
+    return { color: 'red', text: 'Limite próximo' };
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -191,6 +272,9 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
     setCurrentPage('list');
   };
 
+  const connectionStatus = getConnectionStatus();
+  const storageStatus = getStorageStatus();
+
   if (currentPage === 'form') {
     return (
       <ProductForm
@@ -232,14 +316,16 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                   </div>
                   <div className="text-white">
                     <h1 className="text-2xl md:text-3xl font-bold mb-1">Sistema de Gestão Hospitalar</h1>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-4">
                       <p className="text-blue-100 text-sm md:text-base">Controle inteligente de produtos e equipamentos médicos</p>
-                      <div className={`w-2 h-2 rounded-full ${
-                        dbConnectionStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'
-                      }`}></div>
-                      <span className="text-blue-100 text-xs">
-                        {dbConnectionStatus === 'connected' ? 'Online' : 'Offline'}
-                      </span>
+                      
+                      {/* Status da Conexão */}
+                      <div className="flex items-center space-x-2">
+                        <connectionStatus.icon className={`w-4 h-4 text-${connectionStatus.color}-400`} />
+                        <span className="text-blue-100 text-xs">
+                          {connectionStatus.text} {connectionStatus.detail}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -263,19 +349,39 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                   </div>
                   
                   {currentUser.role === 'admin' && (
-                    <button
-                      onClick={() => setShowDbStatus(!showDbStatus)}
-                      className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                      title="Status do Banco de Dados (Admin Only)"
-                    >
-                      <Database className="w-5 h-5" />
-                      {dbStats && (
-                        <span className="hidden md:inline text-sm font-medium">
-                          {dbStats.totalProducts} produtos
-                        </span>
-                      )}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setShowDbStatus(!showDbStatus)}
+                        className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                        title="Painel Administrativo"
+                      >
+                        <Database className="w-5 h-5" />
+                        {dbStats && (
+                          <span className="hidden md:inline text-sm font-medium">
+                            {dbStats.totalProducts} produtos
+                          </span>
+                        )}
+                      </button>
+                      
+                      <button
+                        onClick={() => setShowDetailedStatus(true)}
+                        className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                        title="Status Detalhado do Supabase"
+                      >
+                        <Settings className="w-5 h-5" />
+                        <span className="hidden md:inline text-sm font-medium">Status</span>
+                      </button>
+                    </>
                   )}
+                  
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    title="Atualizar página"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    <span className="hidden md:inline text-sm font-medium">Atualizar</span>
+                  </button>
                   
                   <button
                     onClick={goToNewProduct}
@@ -289,7 +395,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
 
               {showDbStatus && dbStats && currentUser.role === 'admin' && (
                 <div className="mt-4 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-4">
                     <h4 className="text-white font-semibold text-sm flex items-center">
                       <Database className="w-4 h-4 mr-2" />
                       Painel Administrativo
@@ -306,6 +412,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                     </div>
                   </div>
                   
+                  {/* Estatísticas Principais */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white mb-4">
                     <div>
                       <p className="text-xs opacity-80">Total de Produtos</p>
@@ -324,7 +431,67 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                       <p className="text-xl font-bold">{dbStats.totalImages}</p>
                     </div>
                   </div>
+
+                  {/* Informações de Armazenamento */}
+                  {storageInfo && (
+                    <div className="bg-white bg-opacity-20 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="text-white font-medium text-sm flex items-center">
+                          <HardDrive className="w-4 h-4 mr-2" />
+                          Armazenamento
+                        </h5>
+                        <span className={`text-xs font-medium text-${storageStatus.color}-300`}>
+                          {storageStatus.text}
+                        </span>
+                      </div>
+                      
+                      {/* Barra de Progresso */}
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs text-white mb-1">
+                          <span>Usado: {formatBytes(storageInfo.estimatedStorage * 1024)}</span>
+                          <span>Limite: {formatBytes(storageInfo.freeLimit * 1024)}</span>
+                        </div>
+                        <div className="w-full bg-white bg-opacity-30 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full bg-gradient-to-r ${
+                              storageInfo.usagePercentage < 50 ? 'from-green-400 to-green-500' :
+                              storageInfo.usagePercentage < 80 ? 'from-yellow-400 to-yellow-500' :
+                              storageInfo.usagePercentage < 95 ? 'from-orange-400 to-orange-500' :
+                              'from-red-400 to-red-500'
+                            }`}
+                            style={{ width: `${storageInfo.usagePercentage}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-white opacity-80 mt-1">
+                          {storageInfo.usagePercentage.toFixed(1)}% utilizado
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-white text-xs">
+                        <div>
+                          <p className="opacity-80">Imagens Armazenadas</p>
+                          <p className="font-semibold">{storageInfo.totalImages}</p>
+                        </div>
+                        <div>
+                          <p className="opacity-80">Espaço Restante</p>
+                          <p className="font-semibold">{formatBytes(storageInfo.remainingStorage * 1024)}</p>
+                        </div>
+                      </div>
+
+                      {storageInfo.usagePercentage > 80 && (
+                        <div className="mt-3 bg-orange-500 bg-opacity-80 rounded-lg p-2">
+                          <div className="flex items-center space-x-2">
+                            <AlertTriangle className="w-4 h-4 text-white" />
+                            <p className="text-xs text-white font-medium">
+                              Aviso: Você está próximo do limite de armazenamento
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
+                  {/* Ações Administrativas */}
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={handleExportData}
@@ -346,9 +513,9 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                     </label>
                     
                     <button
-                      onClick={loadProducts}
+                      onClick={refreshData}
                       className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center transition-all"
-                      title="Recarregar dados"
+                      title="Atualizar dados"
                     >
                       <RefreshCw className="w-4 h-4" />
                     </button>
@@ -358,7 +525,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
               <div className="flex items-center justify-between">
                 <div>
@@ -373,6 +540,26 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                 </div>
                 <div className="bg-blue-100 p-2.5 rounded-xl">
                   <Package className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Marcas Diferentes</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {new Set(products.map(p => p.marca).filter(Boolean)).size}
+                  </p>
+                  <p className="text-indigo-600 text-xs mt-1">
+                    <span className="inline-flex items-center">
+                      <div className="w-3 h-3 mr-1 bg-indigo-600 rounded-full"></div>
+                      Fornecedores ativos
+                    </span>
+                  </p>
+                </div>
+                <div className="bg-indigo-100 p-2.5 rounded-xl">
+                  <div className="w-6 h-6 text-indigo-600 flex items-center justify-center font-bold text-base">🏭</div>
                 </div>
               </div>
             </div>
@@ -400,19 +587,19 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
             <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Marcas Diferentes</p>
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Armazenamento</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {new Set(products.map(p => p.marca).filter(Boolean)).size}
+                    {storageInfo ? `${storageInfo.usagePercentage.toFixed(0)}%` : '...'}
                   </p>
-                  <p className="text-indigo-600 text-xs mt-1">
+                  <p className={`text-xs mt-1 text-${storageStatus.color}-600`}>
                     <span className="inline-flex items-center">
-                      <div className="w-3 h-3 mr-1 bg-indigo-600 rounded-full"></div>
-                      Fornecedores
+                      <HardDrive className="w-3 h-3 mr-1" />
+                      {storageStatus.text}
                     </span>
                   </p>
                 </div>
-                <div className="bg-indigo-100 p-2.5 rounded-xl">
-                  <div className="w-6 h-6 text-indigo-600 flex items-center justify-center font-bold text-base">🏭</div>
+                <div className={`bg-${storageStatus.color}-100 p-2.5 rounded-xl`}>
+                  <HardDrive className={`w-6 h-6 text-${storageStatus.color}-600`} />
                 </div>
               </div>
             </div>
@@ -430,7 +617,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
             </div>
           )}
 
-          {/* Tabela de Produtos Moderna - Só aparece se houver produtos e não estiver carregando */}
+          {/* Resto do componente permanece igual... */}
           {!isLoading && products.length > 0 && (
             <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-3 border-b border-gray-200">
@@ -814,6 +1001,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
           )}
         </div>
 
+        {/* Menu do Usuário */}
         {showUserMenu && (
           <>
             <div
@@ -864,6 +1052,11 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                         {dbConnectionStatus === 'connected' ? 'Supabase Online' : 'Supabase Offline'}
                       </p>
                     </div>
+                    {connectionLatency && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Latência: {connectionLatency}ms
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Sessão</p>
@@ -885,6 +1078,14 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
               </div>
             </div>
           </>
+        )}
+
+        {/* Painel de Status Detalhado do Supabase */}
+        {showDetailedStatus && (
+          <SupabaseStatusPanel 
+            databaseService={databaseService}
+            onClose={() => setShowDetailedStatus(false)}
+          />
         )}
 
         <style jsx>{`
