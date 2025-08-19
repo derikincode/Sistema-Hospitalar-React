@@ -36,10 +36,7 @@ const Login = ({ onLogin }) => {
         loginTime: new Date().toISOString()
       };
       
-      // Salva no localStorage
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      
-      // Chama a função de callback com os dados do usuário
+      // Apenas chama a função de callback - SEM localStorage
       onLogin(userData);
     } else {
       // Login falhou

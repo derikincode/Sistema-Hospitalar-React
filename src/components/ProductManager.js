@@ -194,11 +194,22 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
     event.target.value = '';
   };
 
+  // NOVA FUNÇÃO: Atualizar dados SEM recarregar a página
   const refreshData = async () => {
-    await loadProducts();
-    await loadStats();
-    await checkConnectionLatency();
-    showNotification('Dados atualizados!', 'success');
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        loadProducts(),
+        loadStats(),
+        checkConnectionLatency()
+      ]);
+      showNotification('Dados atualizados!', 'success');
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
+      showNotification('Erro ao atualizar alguns dados', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatBytes = (bytes) => {
@@ -374,13 +385,19 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                     </>
                   )}
                   
+                  {/* BOTÃO ATUALIZAR MODIFICADO */}
                   <button
-                    onClick={() => window.location.reload()}
-                    className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                    title="Atualizar página"
+                    onClick={refreshData}
+                    disabled={isLoading}
+                    className={`bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-4 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl ${
+                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    title="Atualizar dados"
                   >
-                    <RefreshCw className="w-5 h-5" />
-                    <span className="hidden md:inline text-sm font-medium">Atualizar</span>
+                    <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+                    <span className="hidden md:inline text-sm font-medium">
+                      {isLoading ? 'Atualizando...' : 'Atualizar'}
+                    </span>
                   </button>
                   
                   <button
@@ -514,10 +531,13 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                     
                     <button
                       onClick={refreshData}
-                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center transition-all"
+                      disabled={isLoading}
+                      className={`bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg flex items-center justify-center transition-all ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                       title="Atualizar dados"
                     >
-                      <RefreshCw className="w-4 h-4" />
+                      <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
                 </div>
@@ -617,7 +637,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
             </div>
           )}
 
-          {/* Resto do componente permanece igual... */}
+          {/* Lista de Produtos */}
           {!isLoading && products.length > 0 && (
             <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-3 border-b border-gray-200">

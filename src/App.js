@@ -6,23 +6,11 @@ import './App.css';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false); // Mudou para false
   const [dbConnectionStatus, setDbConnectionStatus] = useState('checking');
 
-  // Verifica se há um usuário logado ao carregar a aplicação
-  useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setCurrentUser(userData);
-      } catch (error) {
-        console.error('Erro ao recuperar dados do usuário:', error);
-        localStorage.removeItem('currentUser');
-      }
-    }
-    setIsCheckingAuth(false);
-  }, []);
+  // Removido o useEffect que verifica o localStorage
+  // O usuário sempre começará deslogado
 
   // Verifica conexão com o banco de dados
   useEffect(() => {
@@ -44,16 +32,42 @@ function App() {
     }
   };
 
-  // Função para fazer login
+  // Função para fazer login (removido localStorage)
   const handleLogin = (userData) => {
     setCurrentUser(userData);
+    // Não salva mais no localStorage
   };
 
-  // Função para fazer logout
+  // Função para fazer logout (removido localStorage)
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
     setCurrentUser(null);
+    // Não precisa mais remover do localStorage
   };
+
+  // Adiciona listener para detectar quando a página/aba é fechada
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Força logout quando a página é fechada
+      setCurrentUser(null);
+    };
+
+    const handleVisibilityChange = () => {
+      // Opcional: logout quando a aba perde foco por muito tempo
+      if (document.hidden) {
+        console.log('Página ficou inativa');
+      }
+    };
+
+    // Adiciona os event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup dos listeners
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Mostra notificação
   const showNotification = (message, type = 'info') => {
@@ -77,28 +91,8 @@ function App() {
     }, 4000);
   };
 
-  // Tela de loading enquanto verifica autenticação
-  if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 mb-2">Carregando sistema...</p>
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-            <div className={`w-2 h-2 rounded-full ${
-              dbConnectionStatus === 'connected' ? 'bg-green-500' :
-              dbConnectionStatus === 'error' ? 'bg-red-500' : 'bg-yellow-500'
-            }`}></div>
-            <span>
-              {dbConnectionStatus === 'checking' && 'Conectando ao banco...'}
-              {dbConnectionStatus === 'connected' && 'Conectado ao Supabase'}
-              {dbConnectionStatus === 'error' && 'Erro na conexão'}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Removido o loading de verificação de autenticação
+  // Agora só mostra loading para conexão do banco
 
   // Erro de conexão crítico
   if (dbConnectionStatus === 'error' && currentUser) {
