@@ -21,7 +21,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
   
   const [filters, setFilters] = useState({
     marca: '',
-    setor: '',
     hasImages: ''
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -244,30 +243,26 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.setor && product.setor.toLowerCase().includes(searchTerm.toLowerCase()));
+      product.marca.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesMarca = !filters.marca || product.marca === filters.marca;
-    const matchesSetor = !filters.setor || product.setor === filters.setor;
     const matchesImages = !filters.hasImages || 
       (filters.hasImages === 'com' && product.fotos && product.fotos.length > 0) ||
       (filters.hasImages === 'sem' && (!product.fotos || product.fotos.length === 0));
 
-    return matchesSearch && matchesMarca && matchesSetor && matchesImages;
+    return matchesSearch && matchesMarca && matchesImages;
   });
 
   const clearAllFilters = () => {
     setSearchTerm('');
     setFilters({
       marca: '',
-      setor: '',
       hasImages: ''
     });
   };
 
-  const hasActiveFilters = searchTerm || filters.marca || filters.setor || filters.hasImages;
+  const hasActiveFilters = searchTerm || filters.marca || filters.hasImages;
   const uniqueBrands = [...new Set(products.map(p => p.marca).filter(Boolean))].sort();
-  const uniqueSectors = [...new Set(products.map(p => p.setor).filter(Boolean))].sort();
 
   const viewProduct = (product) => {
     setViewingProduct(product);
@@ -430,7 +425,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                   </div>
                   
                   {/* Estatísticas Principais */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white mb-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-white mb-4">
                     <div>
                       <p className="text-xs opacity-80">Total de Produtos</p>
                       <p className="text-xl font-bold">{dbStats.totalProducts}</p>
@@ -438,10 +433,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                     <div>
                       <p className="text-xs opacity-80">Marcas</p>
                       <p className="text-xl font-bold">{dbStats.totalBrands}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs opacity-80">Setores</p>
-                      <p className="text-xl font-bold">{dbStats.totalSectors}</p>
                     </div>
                     <div>
                       <p className="text-xs opacity-80">Total de Imagens</p>
@@ -545,7 +536,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
               <div className="flex items-center justify-between">
                 <div>
@@ -580,26 +571,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                 </div>
                 <div className="bg-indigo-100 p-2.5 rounded-xl">
                   <div className="w-6 h-6 text-indigo-600 flex items-center justify-center font-bold text-base">🏭</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Setores Ativos</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {new Set(products.map(p => p.setor).filter(Boolean)).size}
-                  </p>
-                  <p className="text-purple-600 text-xs mt-1">
-                    <span className="inline-flex items-center">
-                      <div className="w-3 h-3 mr-1 bg-purple-600 rounded-full"></div>
-                      Setores em uso
-                    </span>
-                  </p>
-                </div>
-                <div className="bg-purple-100 p-2.5 rounded-xl">
-                  <div className="w-6 h-6 text-purple-600 flex items-center justify-center font-bold text-base">🏥</div>
                 </div>
               </div>
             </div>
@@ -725,7 +696,7 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                     )}
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     {/* Filtro por Marca */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -739,23 +710,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                         <option value="">Todas as marcas</option>
                         {uniqueBrands.map(marca => (
                           <option key={marca} value={marca}>{marca}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Filtro por Setor */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Setor
-                      </label>
-                      <select
-                        value={filters.setor}
-                        onChange={(e) => setFilters(prev => ({ ...prev, setor: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      >
-                        <option value="">Todos os setores</option>
-                        {uniqueSectors.map(setor => (
-                          <option key={setor} value={setor}>{setor}</option>
                         ))}
                       </select>
                     </div>
@@ -813,14 +767,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                             </button>
                           </span>
                         )}
-                        {filters.setor && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                            Setor: {filters.setor}
-                            <button onClick={() => setFilters(prev => ({ ...prev, setor: '' }))} className="ml-1 hover:text-green-600">
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        )}
                         {filters.hasImages && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
                             {filters.hasImages === 'com' ? 'Com imagens' : 'Sem imagens'}
@@ -859,9 +805,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Marca
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Setor
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Descrição
@@ -914,11 +857,6 @@ const ProductManager = ({ currentUser, onLogout, showNotification, dbConnectionS
                         </td>
                         <td className="px-6 py-3 whitespace-nowrap">
                           <div className="text-sm text-gray-700 font-medium">{product.marca}</div>
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap">
-                          <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-200">
-                            {product.setor || 'Não informado'}
-                          </span>
                         </td>
                         <td className="px-6 py-3">
                           <div className="text-sm text-gray-600 max-w-xs truncate">

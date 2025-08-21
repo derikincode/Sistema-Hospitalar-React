@@ -123,7 +123,6 @@ const ProductForm = ({
     codigo: '',
     nome: '',
     marca: '',
-    setor: '',
     descricao: '',
     fotos: []
   });
@@ -138,7 +137,6 @@ const ProductForm = ({
         codigo: editingProduct.codigo,
         nome: editingProduct.nome,
         marca: editingProduct.marca,
-        setor: editingProduct.setor || '',
         descricao: editingProduct.descricao || '',
         fotos: editingProduct.fotos || []
       });
@@ -160,10 +158,6 @@ const ProductForm = ({
     
     if (!formData.marca.trim()) {
       errors.marca = 'Marca é obrigatória';
-    }
-    
-    if (!formData.setor.trim()) {
-      errors.setor = 'Setor é obrigatório';
     }
 
     // Verifica código duplicado no banco de dados
@@ -271,7 +265,6 @@ const ProductForm = ({
       codigo: '',
       nome: '',
       marca: '',
-      setor: '',
       descricao: '',
       fotos: []
     });
@@ -493,43 +486,7 @@ const ProductForm = ({
                   )}
                 </div>
 
-                {/* Linha 3 - Setor */}
-                <div>
-                  <label className="flex items-center space-x-1 text-sm font-semibold text-gray-700 mb-1.5">
-                    <span>Setor</span>
-                    <span className="text-red-500">*</span>
-                    {formData.setor && !formErrors.setor && (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                    )}
-                  </label>
-                  <select
-                    name="setor"
-                    value={formData.setor}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2.5 text-sm border rounded-lg transition-all ${
-                      formErrors.setor 
-                        ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 error-input' 
-                        : formData.setor
-                        ? 'border-green-300 bg-green-50 focus:border-green-500 focus:ring-2 focus:ring-green-100'
-                        : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                    } focus:outline-none`}
-                  >
-                    <option value="">Selecione o setor...</option>
-                    <option value="CAMB">CAMB</option>
-                    <option value="BMAC">BMAC</option>
-                    <option value="DOCA">DOCA</option>
-                    <option value="10° Andar">10° Andar</option>
-                    <option value="13° Andar">13° Andar</option>
-                  </select>
-                  {formErrors.setor && (
-                    <p className="text-xs text-red-600 mt-1 flex items-center">
-                      <AlertCircle className="w-3 h-3 mr-1" />
-                      {formErrors.setor}
-                    </p>
-                  )}
-                </div>
-
-                {/* Linha 4 - Descrição */}
+                {/* Linha 3 - Descrição */}
                 <div>
                   <label className="flex items-center justify-between text-sm font-semibold text-gray-700 mb-1.5">
                     <span>Descrição (opcional)</span>

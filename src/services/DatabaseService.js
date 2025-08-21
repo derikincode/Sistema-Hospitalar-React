@@ -42,7 +42,6 @@ class DatabaseService {
         codigo: product.codigo.toLowerCase(),
         nome: product.nome,
         marca: product.marca,
-        setor: product.setor,
         descricao: product.descricao || null,
         fotos: product.fotos || [],
         created_at: new Date().toISOString(),
@@ -65,7 +64,6 @@ class DatabaseService {
         codigo: data.codigo,
         nome: data.nome,
         marca: data.marca,
-        setor: data.setor,
         descricao: data.descricao,
         fotos: data.fotos,
         createdAt: data.created_at,
@@ -87,7 +85,6 @@ class DatabaseService {
         codigo: product.codigo.toLowerCase(),
         nome: product.nome,
         marca: product.marca,
-        setor: product.setor,
         descricao: product.descricao || null,
         fotos: product.fotos || [],
         updated_at: new Date().toISOString()
@@ -110,7 +107,6 @@ class DatabaseService {
         codigo: data.codigo,
         nome: data.nome,
         marca: data.marca,
-        setor: data.setor,
         descricao: data.descricao,
         fotos: data.fotos,
         createdAt: data.created_at,
@@ -165,7 +161,6 @@ class DatabaseService {
         codigo: data.codigo,
         nome: data.nome,
         marca: data.marca,
-        setor: data.setor,
         descricao: data.descricao,
         fotos: data.fotos,
         createdAt: data.created_at,
@@ -192,7 +187,6 @@ class DatabaseService {
         codigo: item.codigo,
         nome: item.nome,
         marca: item.marca,
-        setor: item.setor,
         descricao: item.descricao,
         fotos: item.fotos || [],
         createdAt: item.created_at,
@@ -223,7 +217,6 @@ class DatabaseService {
         codigo: item.codigo,
         nome: item.nome,
         marca: item.marca,
-        setor: item.setor,
         descricao: item.descricao,
         fotos: item.fotos || [],
         createdAt: item.created_at,
@@ -336,14 +329,13 @@ class DatabaseService {
     try {
       const { data: products, error } = await this.supabase
         .from(this.tableName)
-        .select('marca, setor, fotos, created_at, updated_at');
+        .select('marca, fotos, created_at, updated_at');
 
       if (error) throw error;
 
       const stats = {
         totalProducts: products.length,
         totalBrands: new Set(products.map(p => p.marca).filter(Boolean)).size,
-        totalSectors: new Set(products.map(p => p.setor).filter(Boolean)).size,
         productsWithImages: products.filter(p => p.fotos && p.fotos.length > 0).length,
         totalImages: products.reduce((sum, p) => sum + (p.fotos ? p.fotos.length : 0), 0),
         lastUpdate: products.length > 0 
@@ -374,10 +366,6 @@ class DatabaseService {
         query = query.eq('marca', filters.marca);
       }
 
-      if (filters.setor) {
-        query = query.eq('setor', filters.setor);
-      }
-
       if (filters.hasImages === 'com') {
         query = query.not('fotos', 'is', null).gt('fotos->0', 'null');
       } else if (filters.hasImages === 'sem') {
@@ -396,7 +384,6 @@ class DatabaseService {
         codigo: item.codigo,
         nome: item.nome,
         marca: item.marca,
-        setor: item.setor,
         descricao: item.descricao,
         fotos: item.fotos || [],
         createdAt: item.created_at,
@@ -567,7 +554,6 @@ class DatabaseService {
         codigo: `test_${Date.now()}`,
         nome: 'Test Record - DELETE ME',
         marca: 'TEST',
-        setor: 'TEST',
         fotos: []
       };
       

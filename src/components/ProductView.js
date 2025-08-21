@@ -266,11 +266,6 @@ const ProductView = ({
                   <p className="text-base font-medium text-gray-800">{viewingProduct.marca}</p>
                 </div>
 
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Setor</h4>
-                  <p className="text-base font-medium text-gray-800">{viewingProduct.setor || 'Não informado'}</p>
-                </div>
-
                 {viewingProduct.descricao && (
                   <div>
                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Descrição Geral</h4>
