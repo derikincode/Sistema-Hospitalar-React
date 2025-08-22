@@ -201,7 +201,7 @@ const Login = ({ onLogin }) => {
           <p>
             Desenvolvido por{' '}
             <a 
-              href="https://github.com/derikincode" 
+              href="https://www.instagram.com/__derikoliveira/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
