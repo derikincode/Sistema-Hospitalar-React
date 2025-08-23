@@ -212,9 +212,6 @@ ${viewingProduct.fotos ? `Imagens: ${viewingProduct.fotos.length}` : 'Sem imagen
                 >
                   <ArrowLeft className="w-6 h-6 text-white" />
                 </button>
-                <div className="bg-white bg-opacity-20 backdrop-blur-sm p-3 rounded-xl shadow-lg">
-                  <Package className="w-8 h-8 text-white" />
-                </div>
                 <div className="text-white">
                   <h1 className="text-2xl md:text-3xl font-bold mb-1">{viewingProduct.nome}</h1>
                   <div className="flex flex-wrap items-center gap-3">
